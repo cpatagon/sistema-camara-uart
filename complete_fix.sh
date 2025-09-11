@@ -1,3 +1,36 @@
+#!/bin/bash
+# 🔧 Reparación Completa del Sistema
+# Crea archivos limpios y funcionales
+
+set -e
+
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+log_info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
+log_success() { echo -e "${GREEN}✅ $1${NC}"; }
+log_error() { echo -e "${RED}❌ $1${NC}"; }
+
+echo -e "${GREEN}"
+echo "╔══════════════════════════════════════════════════════╗"
+echo "║         🔧 REPARACIÓN COMPLETA DEL SISTEMA           ║"
+echo "║            Creando archivos limpios                  ║"
+echo "╚══════════════════════════════════════════════════════╝"
+echo -e "${NC}"
+
+# Verificar directorio
+if [ ! -d "src" ]; then
+    log_error "Ejecutar desde directorio sistema-camara-uart"
+    exit 1
+fi
+
+log_info "Creando camara_controller.py limpio..."
+
+# Crear archivo completamente nuevo
+cat > src/camara_controller.py << 'EOF'
 """
 Controlador de Cámara - Versión Funcional
 Basado exactamente en el código simple que ya funciona
@@ -203,3 +236,142 @@ CamaraUART = CamaraController
 def crear_controlador_camara(config_manager=None):
     """Función helper para crear instancia del controlador"""
     return CamaraController(config_manager)
+EOF
+
+log_success "camara_controller.py creado"
+
+# Verificar sintaxis
+log_info "Verificando sintaxis de Python..."
+python3 -m py_compile src/camara_controller.py
+
+if [ $? -eq 0 ]; then
+    log_success "Sintaxis correcta"
+else
+    log_error "Error de sintaxis en camara_controller.py"
+    exit 1
+fi
+
+# Probar import básico
+log_info "Probando import básico..."
+python3 << 'PYEOF'
+import sys
+sys.path.insert(0, 'src')
+
+try:
+    from camara_controller import CamaraController
+    print("✅ Import CamaraController exitoso")
+    
+    # Crear instancia básica
+    controller = CamaraController()
+    print("✅ Instancia creada exitosamente")
+    
+    # Probar método básico
+    info = controller.obtener_info_camara()
+    print(f"✅ Info cámara: {info['disponible']}")
+    
+    print("🎉 Controlador funciona correctamente")
+    
+except Exception as e:
+    print(f"❌ Error: {e}")
+    import traceback
+    traceback.print_exc()
+    exit(1)
+PYEOF
+
+if [ $? -eq 0 ]; then
+    log_success "Import y creación de instancia exitosos"
+else
+    log_error "Error en pruebas básicas"
+    exit 1
+fi
+
+# Crear script de test específico
+log_info "Creando script de test específico..."
+cat > test_camara_only.py << 'EOF'
+#!/usr/bin/env python3
+"""
+Test específico para el controlador de cámara
+"""
+
+import sys
+import os
+
+# Agregar src al path
+sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
+
+def test_controller():
+    """Prueba el controlador de cámara"""
+    print("🧪 Probando CamaraController...")
+    
+    try:
+        from camara_controller import CamaraController
+        
+        # Crear instancia
+        controller = CamaraController()
+        print("✅ Controlador creado")
+        
+        # Verificar cámara
+        disponible = controller.verificar_camara_disponible()
+        print(f"📸 Cámara disponible: {disponible}")
+        
+        # Cambiar resolución
+        resultado = controller.cambiar_resolucion("640x480")
+        print(f"🔧 Cambio resolución: {resultado}")
+        
+        # Obtener info
+        info = controller.obtener_info_camara()
+        print(f"ℹ️  Info cámara: {info}")
+        
+        # Listar fotos
+        fotos = controller.listar_fotos_recientes(3)
+        print(f"📁 Fotos recientes: {len(fotos)}")
+        
+        print("🎉 Todas las pruebas del controlador exitosas")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+if __name__ == "__main__":
+    if test_controller():
+        print("✅ Test exitoso")
+    else:
+        print("❌ Test falló")
+        sys.exit(1)
+EOF
+
+chmod +x test_camara_only.py
+
+# Ejecutar test específico
+log_info "Ejecutando test específico del controlador..."
+python3 test_camara_only.py
+
+if [ $? -eq 0 ]; then
+    log_success "Test específico exitoso"
+else
+    log_error "Test específico falló"
+    exit 1
+fi
+
+# Ahora probar el sistema completo
+log_info "Probando sistema completo..."
+./test_system.sh
+
+if [ $? -eq 0 ]; then
+    log_success "🎉 Sistema completo funcionando"
+else
+    log_error "Sistema completo aún tiene problemas"
+    echo ""
+    echo "💡 Opciones:"
+    echo "1. Ejecutar solo: python3 test_camara_only.py"
+    echo "2. Revisar logs en scripts/main_daemon.py"
+    echo "3. Ejecutar modo debug: python3 scripts/main_daemon.py --debug"
+fi
+
+echo ""
+log_success "Reparación completada"
+echo "📁 Archivo creado: test_camara_only.py"
+echo "🔧 Controlador reparado: src/camara_controller.py"

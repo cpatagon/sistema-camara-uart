@@ -17,8 +17,8 @@ from queue import Queue, Empty
 from dataclasses import dataclass
 from enum import Enum
 
-from .config_manager import ConfigManager
-from .exceptions import (
+from config_manager import ConfigManager
+from exceptions import (
     UARTError,
     UARTConnectionError, 
     UARTTimeoutError,

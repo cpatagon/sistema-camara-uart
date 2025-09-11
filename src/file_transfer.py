@@ -20,8 +20,8 @@ from enum import Enum
 from queue import Queue, Empty
 import tempfile
 
-from .config_manager import ConfigManager
-from .exceptions import (
+from config_manager import ConfigManager
+from exceptions import (
     FileTransferError,
     FileNotFoundError,
     FileTransferTimeoutError,
