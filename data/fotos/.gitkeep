@@ -1,0 +1,36 @@
+# ============================================================================
+# .gitkeep - DIRECTORIO DE FOTOS
+# ============================================================================
+#
+# Este archivo mantiene el directorio data/fotos/ en Git.
+# Git no trackea directorios vacíos, por lo que este archivo garantiza
+# que la estructura de directorios se preserve al clonar el repositorio.
+#
+# Directorio: data/fotos/
+# Propósito: Almacenar fotografías capturadas por el sistema de cámara UART
+# Autor: Sistema de Cámara UART v1.0
+# ============================================================================
+
+# INFORMACIÓN DEL DIRECTORIO:
+# - Las fotos se guardan aquí automáticamente al usar el comando "foto"
+# - Formato de nombres: YYYYMMDD_HHMMSS.jpg (ej: 20250910_143052.jpg)
+# - El directorio se limpia automáticamente según configuración
+# - Los archivos de fotos están en .gitignore (no se suben a GitHub)
+
+# IMPORTANTE:
+# - Este directorio debe tener permisos de escritura
+# - El usuario debe estar en grupo 'dialout' para UART
+# - El sistema crea subdirectorios automáticamente si es necesario
+
+# COMANDOS ÚTILES:
+# ls -la data/fotos/              # Ver archivos en directorio
+# du -sh data/fotos/              # Ver tamaño total
+# find data/fotos/ -name "*.jpg"  # Buscar solo archivos JPG
+
+# CONFIGURACIÓN:
+# Ver config/camara.conf sección [SISTEMA] para ajustar:
+# - directorio_fotos = /data/fotos
+# - max_archivos = 1000
+# - auto_limpiar = true
+
+# NO ELIMINAR ESTE ARCHIVO - Mantiene la estructura del proyecto

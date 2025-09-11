@@ -1,0 +1,215 @@
+# ============================================================================
+# ARCHIVO DE SERVICIO SYSTEMD - SISTEMA DE CÁMARA UART
+# ============================================================================
+#
+# Este archivo define el servicio systemd para el sistema de cámara UART.
+# Permite ejecutar el sistema como servicio del sistema con inicio automático.
+#
+# Instalación:
+#   sudo cp systemd/camara-uart.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable camara-uart
+#   sudo systemctl start camara-uart
+#
+# Autor: Sistema de Cámara UART v1.0
+# Fecha: 2025-09-10
+# ============================================================================
+
+[Unit]
+Description=Sistema de Cámara UART para Raspberry Pi
+Documentation=file:///opt/camara-uart/docs/README.md
+Documentation=man:systemd.service(5)
+
+# Dependencias del servicio
+After=network.target
+After=multi-user.target
+After=graphical-session.target
+Wants=network.target
+
+# Requisitos opcionales para hardware específico
+After=dev-ttyS0.device
+After=dev-ttyUSB0.device
+After=dev-ttyACM0.device
+
+# Configuración de conflictos
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+# Tipo de servicio
+Type=simple
+
+# Usuario y grupo del servicio
+# NOTA: Cambiar 'pi' por el usuario correcto en tu sistema
+User=pi
+Group=camara-uart
+SupplementaryGroups=dialout video
+
+# Directorio de trabajo
+# NOTA: Cambiar por la ruta correcta de instalación
+WorkingDirectory=/opt/camara-uart
+
+# Variables de entorno
+Environment="PATH=/opt/camara-uart/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/opt/camara-uart/src"
+Environment="PYTHONUNBUFFERED=1"
+
+# Comando de inicio
+# NOTA: Ajustar rutas según instalación
+ExecStartPre=/bin/sleep 10
+ExecStart=/opt/camara-uart/venv/bin/python /opt/camara-uart/scripts/main_daemon.py --config /opt/camara-uart/config/camara.conf
+
+# Comandos de control
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Configuración de reinicio
+Restart=always
+RestartSec=5
+StartLimitInterval=60
+StartLimitBurst=3
+
+# Configuración de salida
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=camara-uart
+
+# Límites de recursos
+LimitNOFILE=65536
+LimitNPROC=4096
+LimitCORE=0
+
+# Configuración de memoria (opcional para Pi Zero)
+# MemoryLimit=256M
+# CPUQuota=80%
+
+# ============================================================================
+# CONFIGURACIÓN DE SEGURIDAD
+# ============================================================================
+
+# Prevenir escalada de privilegios
+NoNewPrivileges=yes
+
+# Sistema de archivos
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/camara-uart/data
+ReadWritePaths=/opt/camara-uart/logs
+ReadWritePaths=/var/log/camara-uart
+ReadWritePaths=/tmp
+
+# Dispositivos
+PrivateDevices=no
+DeviceAllow=/dev/ttyS0 rw
+DeviceAllow=/dev/ttyUSB0 rw
+DeviceAllow=/dev/ttyACM0 rw
+DeviceAllow=/dev/video0 rw
+DeviceAllow=/dev/vchiq rw
+DeviceAllow=/dev/vcio rw
+
+# Red (mantener acceso para logs remotos si es necesario)
+# PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Kernels y syscalls
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+
+# Namespaces
+PrivateUsers=no
+ProtectHostname=yes
+ProtectClock=yes
+
+# Capacidades (mantener solo las necesarias)
+CapabilityBoundingSet=CAP_DAC_OVERRIDE
+AmbientCapabilities=CAP_DAC_OVERRIDE
+
+# ============================================================================
+# CONFIGURACIÓN DE LOGGING AVANZADO
+# ============================================================================
+
+# Configuración del journal
+# LogLevelMax=info
+# LogRateLimitIntervalSec=30s
+# LogRateLimitBurst=100
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=graphical.target
+
+# Alias para el servicio
+Alias=camara-uart.service
+Alias=camera-uart.service
+
+# ============================================================================
+# NOTAS DE CONFIGURACIÓN
+# ============================================================================
+#
+# 1. PERSONALIZACIÓN:
+#    - Cambiar 'User=pi' por tu usuario específico
+#    - Ajustar 'WorkingDirectory' a la ruta de instalación real
+#    - Modificar rutas en 'ExecStart' según instalación
+#
+# 2. DISPOSITIVOS UART:
+#    El servicio está configurado para trabajar con múltiples tipos de
+#    dispositivos serie. Ajustar DeviceAllow según tu hardware específico:
+#    - /dev/ttyS0: UART GPIO en Raspberry Pi
+#    - /dev/ttyUSB0: Adaptadores USB-Serie
+#    - /dev/ttyACM0: Dispositivos CDC/ACM
+#
+# 3. SEGURIDAD:
+#    El servicio incluye configuraciones de seguridad robustas.
+#    Algunas pueden necesitar ajustes según tu entorno específico.
+#
+# 4. RECURSOS:
+#    Los límites de recursos están configurados para Raspberry Pi.
+#    Ajustar según el modelo específico y recursos disponibles.
+#
+# 5. DEPENDENCIAS:
+#    El servicio espera a que la red esté disponible y dispositivos listos.
+#    Ajustar dependencias según requisitos específicos.
+#
+# 6. LOGGING:
+#    Los logs se envían al journal de systemd. Ver con:
+#    sudo journalctl -u camara-uart -f
+#
+# 7. MONITOREO:
+#    El servicio está configurado para reinicio automático en caso de fallo.
+#    Configurar alertas externas si es necesario para producción.
+#
+# ============================================================================
+# COMANDOS ÚTILES
+# ============================================================================
+#
+# Instalar servicio:
+#   sudo cp systemd/camara-uart.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#
+# Habilitar inicio automático:
+#   sudo systemctl enable camara-uart
+#
+# Controlar servicio:
+#   sudo systemctl start camara-uart
+#   sudo systemctl stop camara-uart
+#   sudo systemctl restart camara-uart
+#   sudo systemctl status camara-uart
+#
+# Ver logs:
+#   sudo journalctl -u camara-uart
+#   sudo journalctl -u camara-uart -f
+#   sudo journalctl -u camara-uart --since today
+#
+# Verificar configuración:
+#   sudo systemd-analyze verify /etc/systemd/system/camara-uart.service
+#
+# Editar servicio:
+#   sudo systemctl edit camara-uart
+#
+# ============================================================================

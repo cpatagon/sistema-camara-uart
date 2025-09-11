@@ -1,0 +1,306 @@
+# ============================================================================
+# CONFIGURACIÓN DEL SISTEMA DE CÁMARA UART
+# ============================================================================
+# 
+# Este archivo contiene toda la configuración del sistema de cámara UART.
+# Copia este archivo como 'camara.conf' y ajusta los valores según tus necesidades.
+#
+# Comandos útiles:
+#   cp config/camara.conf.example config/camara.conf
+#   nano config/camara.conf
+#
+# Última actualización: 2025-09-10
+# ============================================================================
+
+# ============================================================================
+# CONFIGURACIÓN UART
+# ============================================================================
+[UART]
+
+# Puerto serie a utilizar
+# Opciones comunes:
+#   /dev/ttyS0     - GPIO UART en Raspberry Pi (pines 14/15)
+#   /dev/ttyAMA0   - UART alternativo en algunos modelos
+#   /dev/ttyUSB0   - Adaptador USB-Serie
+#   /dev/ttyACM0   - Dispositivos CDC/ACM
+puerto = /dev/ttyS0
+
+# Velocidad de comunicación en baudios
+# Valores soportados: 9600, 19200, 38400, 57600, 115200, 230400
+# Recomendado:
+#   Pi Zero: 57600 o 115200
+#   Pi 3B+/4: 115200 o 230400
+baudrate = 115200
+
+# Timeout de comunicación en segundos
+# Ajustar según la velocidad de procesamiento
+timeout = 1.0
+
+# Bits de datos por carácter
+# Estándar: 8 bits
+bytesize = 8
+
+# Paridad
+# N = Sin paridad (recomendado)
+# E = Paridad par
+# O = Paridad impar
+parity = N
+
+# Bits de parada
+# Estándar: 1 bit
+stopbits = 1
+
+# ============================================================================
+# CONFIGURACIÓN DE CÁMARA
+# ============================================================================
+[CAMARA]
+
+# Resolución de captura en píxeles
+# Resoluciones estándar soportadas:
+#   640x480     - VGA (0.3 MP) - Muy rápido
+#   800x600     - SVGA (0.5 MP) - Rápido
+#   1024x768    - XGA (0.8 MP) - Rápido
+#   1280x720    - HD (0.9 MP) - Balance ideal
+#   1280x1024   - SXGA (1.3 MP) - Buena calidad
+#   1920x1080   - Full HD (2.1 MP) - Alta calidad
+#   2592x1944   - 5MP (5.0 MP) - Máxima calidad (lento)
+resolucion_ancho = 1920
+resolucion_alto = 1080
+
+# Calidad de compresión JPEG (1-100)
+# 95 = Alta calidad, archivos grandes
+# 85 = Buena calidad, balance tamaño/calidad
+# 75 = Calidad media, archivos más pequeños
+calidad = 95
+
+# Formato de imagen
+# Soportados: jpg, jpeg, png, bmp
+# Recomendado: jpg (mejor compresión)
+formato = jpg
+
+# Transformaciones de imagen
+# Voltear horizontalmente (efecto espejo)
+flip_horizontal = false
+
+# Voltear verticalmente
+flip_vertical = false
+
+# Rotación en grados (0, 90, 180, 270)
+# 0 = Sin rotación
+# 90 = Rotar 90° horario
+# 180 = Rotar 180°
+# 270 = Rotar 270° horario (90° antihorario)
+rotacion = 0
+
+# Configuración ISO (sensibilidad)
+# 0 = Automático (recomendado)
+# 100-800 = Valores manuales
+iso = 0
+
+# Exposición automática
+# true = Automático (recomendado)
+# false = Manual (requiere configuración adicional)
+exposicion_auto = true
+
+# Balance de blancos automático
+# true = Automático (recomendado)
+# false = Manual
+balance_blancos_auto = true
+
+# ============================================================================
+# CONFIGURACIÓN DEL SISTEMA
+# ============================================================================
+[SISTEMA]
+
+# Directorio donde se guardan las fotos
+# Asegurarse de que existe y tiene permisos de escritura
+directorio_fotos = /data/fotos
+
+# Directorio para archivos temporales
+directorio_temp = /data/temp
+
+# Directorio para archivos de log
+directorio_logs = /var/log
+
+# Número máximo de archivos en directorio_fotos
+# Al superarse, se eliminan los más antiguos
+max_archivos = 1000
+
+# Tamaño máximo del directorio en MB
+# Al superarse, se eliminan archivos antiguos
+max_size_mb = 500
+
+# Limpieza automática habilitada
+# true = Eliminar archivos antiguos automáticamente
+# false = Manual solamente
+auto_limpiar = true
+
+# Días después de los cuales eliminar archivos
+# Solo aplica si auto_limpiar = true
+limpiar_dias = 7
+
+# Backup automático habilitado
+# true = Copiar archivos a directorio de backup
+# false = Sin backup automático
+backup_habilitado = false
+
+# Directorio de backup
+# Solo se usa si backup_habilitado = true
+backup_directorio = /backup
+
+# ============================================================================
+# CONFIGURACIÓN DE TRANSFERENCIA DE ARCHIVOS
+# ============================================================================
+[TRANSFERENCIA]
+
+# Tamaño del chunk en bytes para transferencia
+# Valores recomendados:
+#   256 = Estándar, buena compatibilidad
+#   512 = Más rápido, requiere enlaces estables
+#   128 = Más lento, máxima compatibilidad
+chunk_size = 256
+
+# Timeout por chunk en segundos
+# Ajustar según velocidad UART y tamaño chunk
+timeout_chunk = 5.0
+
+# Número máximo de reintentos por chunk
+# En caso de error de transmisión
+max_reintentos = 3
+
+# Verificación de integridad con checksum
+# true = Verificar integridad (recomendado)
+# false = Sin verificación (más rápido)
+verificar_checksum = true
+
+# Compresión de archivos antes de transferir
+# true = Comprimir (reduce tiempo de transferencia)
+# false = Sin compresión (transferencia directa)
+compresion_habilitada = false
+
+# Nivel de compresión (1-9)
+# 1 = Rápido, poca compresión
+# 6 = Balance estándar
+# 9 = Lento, máxima compresión
+compresion_nivel = 6
+
+# ============================================================================
+# CONFIGURACIÓN DE LOGGING
+# ============================================================================
+[LOGGING]
+
+# Nivel de logging
+# DEBUG = Información detallada para desarrollo
+# INFO = Información general de operación
+# WARNING = Advertencias y problemas menores
+# ERROR = Errores que no detienen el sistema
+# CRITICAL = Errores críticos que detienen el sistema
+nivel = INFO
+
+# Archivo de log principal
+archivo = /var/log/camara-uart.log
+
+# Tamaño máximo del archivo de log en MB
+# Al superarse, se rota el archivo
+max_size_mb = 10
+
+# Número de archivos de backup a mantener
+# camara-uart.log.1, camara-uart.log.2, etc.
+backup_count = 5
+
+# Formato de los mensajes de log
+# Plantilla estándar con timestamp, módulo, nivel y mensaje
+formato = %(asctime)s - %(name)s - %(levelname)s - %(message)s
+
+# Mostrar logs también en consola
+# true = Mostrar en pantalla y archivo
+# false = Solo en archivo
+console_output = true
+
+# ============================================================================
+# CONFIGURACIÓN AVANZADA (OPCIONAL)
+# ============================================================================
+# 
+# Las siguientes configuraciones son opcionales y para usuarios avanzados.
+# No modificar a menos que sepas exactamente qué hace cada parámetro.
+
+# [AVANZADO]
+# # Buffer de recepción UART en bytes
+# buffer_uart = 4096
+# 
+# # Intervalo de heartbeat en segundos
+# heartbeat_intervalo = 30
+# 
+# # Timeout de inicio de cámara en segundos
+# camara_init_timeout = 10
+# 
+# # Reintentos máximos de conexión UART
+# uart_max_reintentos = 5
+# 
+# # Habilitar modo debug UART
+# uart_debug = false
+# 
+# # Prefijo para nombres de archivo
+# archivo_prefijo = CAM_
+# 
+# # Sufijo para nombres de archivo (antes de extensión)
+# archivo_sufijo = 
+# 
+# # Formato de timestamp en nombres de archivo
+# # %Y%m%d_%H%M%S = 20250910_143052
+# # %Y-%m-%d_%H-%M-%S = 2025-09-10_14-30-52
+# timestamp_formato = %Y%m%d_%H%M%S
+
+# ============================================================================
+# NOTAS DE CONFIGURACIÓN
+# ============================================================================
+#
+# 1. PERMISOS:
+#    - El usuario debe tener permisos para acceder al puerto UART
+#    - Agregar usuario al grupo dialout: sudo usermod -a -G dialout $USER
+#    - Los directorios deben tener permisos de escritura
+#
+# 2. RENDIMIENTO:
+#    - Para Pi Zero: usar resoluciones ≤ 1280x720
+#    - Para Pi 3B+/4: resoluciones hasta 1920x1080 funcionan bien
+#    - Velocidades UART altas requieren cables cortos y buena calidad
+#
+# 3. DEPURACIÓN:
+#    - Cambiar nivel de logging a DEBUG para diagnósticos
+#    - Activar console_output para ver logs en tiempo real
+#    - Verificar disponibilidad de puerto con: ls -la /dev/tty*
+#
+# 4. SEGURIDAD:
+#    - No usar este sistema en redes públicas sin cifrado
+#    - Cambiar directorios por defecto en instalaciones de producción
+#    - Configurar backup_directorio en dispositivo separado
+#
+# 5. MANTENIMIENTO:
+#    - Revisar logs periódicamente
+#    - Limpiar directorio_temp regularmente
+#    - Monitorear espacio en disco
+#    - Verificar integridad de archivos de backup
+#
+# ============================================================================
+# COMANDOS ÚTILES
+# ============================================================================
+#
+# Verificar puerto UART disponible:
+#   ls -la /dev/tty* | grep -E "(ttyS|ttyAMA|ttyUSB|ttyACM)"
+#
+# Verificar permisos usuario:
+#   groups $USER
+#
+# Test básico puerto UART:
+#   echo "test" > /dev/ttyS0
+#
+# Monitorear logs en tiempo real:
+#   tail -f /var/log/camara-uart.log
+#
+# Verificar espacio en disco:
+#   df -h /data/fotos
+#
+# Verificar cámara detectada:
+#   vcgencmd get_camera
+#
+# ============================================================================

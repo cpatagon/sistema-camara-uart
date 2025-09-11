@@ -1,0 +1,529 @@
+# ============================================================================
+# .gitignore - SISTEMA DE CÁMARA UART
+# ============================================================================
+# 
+# Este archivo especifica qué archivos y directorios deben ser ignorados
+# por Git al realizar commits. Incluye configuraciones específicas para
+# Python, Raspberry Pi, datos de usuario y archivos del sistema.
+#
+# Autor: Sistema de Cámara UART v1.0
+# Fecha: 2025-09-10
+# ============================================================================
+
+# ============================================================================
+# ARCHIVOS DE CONFIGURACIÓN Y DATOS SENSIBLES
+# ============================================================================
+
+# Configuración real (contiene configuraciones específicas del usuario)
+config/camara.conf
+config/*.conf
+!config/*.conf.example
+
+# Archivos de backup de configuración
+config/*.backup
+config/*.bak
+/boot/config.txt.backup.*
+
+# Credenciales y claves API
+*.key
+*.pem
+*.crt
+credentials.json
+secrets.json
+.env
+.env.local
+.env.production
+
+# ============================================================================
+# DATOS DE USUARIO Y ARCHIVOS GENERADOS
+# ============================================================================
+
+# Directorio de fotos (archivos grandes, específicos del usuario)
+data/fotos/*
+!data/fotos/.gitkeep
+
+# Archivos temporales del sistema
+data/temp/*
+!data/temp/.gitkeep
+
+# Logs del sistema
+logs/*
+!logs/.gitkeep
+*.log
+*.log.*
+
+# Archivos de estadísticas
+estadisticas_finales.json
+historial_capturas.json
+
+# Backups automáticos
+*backup*
+*.backup.*
+backup/
+
+# ============================================================================
+# ENTORNO VIRTUAL PYTHON
+# ============================================================================
+
+# Entorno virtual (puede ser muy grande)
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Directorios de entornos alternativos
+pyvenv.cfg
+pip-selfcheck.json
+
+# ============================================================================
+# ARCHIVOS PYTHON GENERADOS
+# ============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# ============================================================================
+# ARCHIVOS DEL SISTEMA OPERATIVO
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# ARCHIVOS ESPECÍFICOS DE RASPBERRY PI
+# ============================================================================
+
+# Archivos de configuración del sistema que pueden contener info sensible
+/etc/wpa_supplicant/wpa_supplicant.conf
+/etc/dhcpcd.conf
+
+# Archivos de log del sistema
+/var/log/*
+/var/cache/*
+/var/tmp/*
+
+# Archivos de dispositivo
+/dev/*
+
+# Archivos de montaje
+/mnt/*
+/media/*
+
+# ============================================================================
+# HERRAMIENTAS DE DESARROLLO
+# ============================================================================
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+.metadata/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*.swn
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ============================================================================
+# ARCHIVOS DE COMPILACIÓN Y BUILD
+# ============================================================================
+
+# Archivos compilados
+*.o
+*.a
+*.la
+*.lo
+*.so
+*.dylib
+*.dll
+
+# Makefiles generados
+Makefile.in
+configure
+config.log
+config.status
+autom4te.cache/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+
+# ============================================================================
+# ARCHIVOS DE RED Y COMUNICACIÓN
+# ============================================================================
+
+# Archivos de captura de red
+*.pcap
+*.pcapng
+
+# Archivos de socket
+*.sock
+*.socket
+
+# ============================================================================
+# ARCHIVOS MULTIMEDIA GRANDES
+# ============================================================================
+
+# Imágenes de ejemplo o test (pueden ser grandes)
+test_images/
+examples/images/
+samples/
+
+# Videos de prueba
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Archivos de audio
+*.wav
+*.mp3
+*.flac
+
+# ============================================================================
+# ARCHIVOS ESPECÍFICOS DEL PROYECTO
+# ============================================================================
+
+# Scripts de instalación personalizados
+install_custom.sh
+uninstall_custom.sh
+
+# Archivos de configuración personalizados por usuario
+config/camara_*.conf
+config/local_*.conf
+
+# Archivos PID del daemon
+*.pid
+/var/run/camara-uart.pid
+
+# Historial del cliente
+.camara_uart_historial
+
+# Archivos de testing
+test_output/
+test_results/
+*.test
+
+# Archivos de profiling
+*.prof
+*.profile
+
+# Archivos de desarrollo local
+dev_notes.txt
+TODO_personal.md
+notas_desarrollo.md
+
+# Configuraciones de desarrollo
+.env.development
+.env.testing
+dev_config.json
+
+# ============================================================================
+# ARCHIVOS TEMPORALES Y CACHE
+# ============================================================================
+
+# Archivos temporales generales
+tmp/
+temp/
+cache/
+.cache/
+.tmp/
+
+# Archivos de lockfile
+*.lock
+.lockfile
+
+# Archivos de proceso
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================================================
+# ARCHIVOS DE DOCUMENTACIÓN GENERADOS
+# ============================================================================
+
+# Documentación compilada
+docs/build/
+docs/_build/
+docs/site/
+
+# Archivos LaTeX
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.toc
+*.out
+*.synctex.gz
+
+# ============================================================================
+# CONFIGURACIONES ESPECÍFICAS DE DEPLOYMENT
+# ============================================================================
+
+# Archivos de Docker (si se usan en el futuro)
+.dockerignore
+Dockerfile.dev
+docker-compose.override.yml
+
+# Archivos de CI/CD específicos
+.github/workflows/secrets.yml
+.gitlab-ci-local.yml
+
+# Archivos de configuración de servidor
+nginx.conf
+apache.conf
+systemd_custom/
+
+# ============================================================================
+# ARCHIVOS DE MONITOREO Y MÉTRICAS
+# ============================================================================
+
+# Archivos de métricas
+metrics/
+monitoring/
+*.metrics
+
+# Grafana/Prometheus configs (si se usan)
+grafana/
+prometheus/
+
+# ============================================================================
+# ARCHIVOS DE BASE DE DATOS (si se implementan)
+# ============================================================================
+
+# SQLite
+*.sqlite
+*.sqlite3
+*.db
+
+# Base de datos de desarrollo
+dev.db
+test.db
+
+# ============================================================================
+# ARCHIVOS DE SEGURIDAD
+# ============================================================================
+
+# Certificados SSL
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Archivos de audit
+audit.log
+security.log
+
+# ============================================================================
+# NOTAS IMPORTANTES
+# ============================================================================
+#
+# 1. MANTENER ACTUALIZADOS:
+#    - Revisar periódicamente este archivo
+#    - Agregar nuevos patrones según evolucione el proyecto
+#
+# 2. ARCHIVOS IMPORTANTES A NO IGNORAR:
+#    - requirements.txt (esencial para dependencias)
+#    - config/*.example (templates de configuración)
+#    - systemd/*.service (archivos de servicio)
+#    - scripts/*.sh (scripts de instalación)
+#
+# 3. DATOS SENSIBLES:
+#    - Nunca commitear archivos con credenciales
+#    - Usar variables de entorno para configuraciones sensibles
+#    - Verificar antes de hacer push
+#
+# 4. ARCHIVOS GRANDES:
+#    - Git no es apropiado para archivos grandes (>100MB)
+#    - Considerar Git LFS para archivos multimedia si es necesario
+#
+# ============================================================================

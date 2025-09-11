@@ -1,0 +1,69 @@
+# ============================================================================
+# .gitkeep - DIRECTORIO DE DOCUMENTACIÓN
+# ============================================================================
+#
+# Este archivo mantiene el directorio docs/ en Git.
+# Git no trackea directorios vacíos, por lo que este archivo garantiza
+# que la estructura de directorios se preserve al clonar el repositorio.
+#
+# Directorio: docs/
+# Propósito: Documentación adicional del proyecto
+# Autor: Sistema de Cámara UART v1.0
+# ============================================================================
+
+# ESTRUCTURA DE DOCUMENTACIÓN PLANIFICADA:
+# docs/
+# ├── INSTALL.md              # Guía de instalación detallada
+# ├── API.md                  # Documentación de la API UART
+# ├── TROUBLESHOOTING.md      # Solución de problemas
+# ├── EXAMPLES.md             # Ejemplos de uso avanzados
+# ├── HARDWARE.md             # Guía de hardware y conexiones
+# ├── CONFIGURATION.md        # Configuración avanzada
+# ├── DEVELOPMENT.md          # Guía para desarrolladores
+# └── images/                 # Capturas de pantalla y diagramas
+#     ├── architecture.png    # Diagrama de arquitectura
+#     ├── installation.gif    # GIF de instalación
+#     ├── client-demo.png     # Demo del cliente
+#     └── hardware-setup.jpg  # Foto del setup de hardware
+
+# TIPOS DE DOCUMENTACIÓN:
+# - Guías de usuario final
+# - Documentación técnica para desarrolladores  
+# - Diagramas de arquitectura y flujo
+# - Capturas de pantalla y demos
+# - Troubleshooting y FAQ
+# - Ejemplos de código y configuración
+
+# FORMATOS SOPORTADOS:
+# - Markdown (.md) - Principal, compatible con GitHub
+# - ReStructuredText (.rst) - Para Sphinx
+# - Plain text (.txt) - Para notas simples
+# - Imágenes (.png, .jpg, .gif) - Para ilustraciones
+# - Diagramas (.svg) - Para gráficos escalables
+
+# GENERACIÓN AUTOMÁTICA:
+# - Sphinx puede generar docs automáticamente desde docstrings
+# - GitHub Pages puede hospedar la documentación
+# - README.md principal ya enlaza a esta documentación
+
+# ESTÁNDARES DE DOCUMENTACIÓN:
+# - Usar Markdown para compatibilidad con GitHub
+# - Incluir tabla de contenidos en documentos largos
+# - Usar ejemplos de código con syntax highlighting
+# - Incluir capturas de pantalla para guías visuales
+# - Mantener enlaces relativos para portabilidad
+
+# EJEMPLOS DE CONTENIDO FUTURO:
+# - Tutorial paso a paso de instalación con imágenes
+# - Documentación completa de todos los comandos UART
+# - Guía de troubleshooting con errores comunes
+# - Ejemplos de integración con otros sistemas
+# - Especificaciones técnicas del protocolo UART
+
+# HERRAMIENTAS RECOMENDADAS:
+# - Typora o Mark Text - Editores Markdown WYSIWYG
+# - Sphinx - Generación automática de documentación
+# - PlantUML - Diagramas como código
+# - Asciinema - Grabación de terminal para demos
+
+# NO ELIMINAR ESTE ARCHIVO - Mantiene la estructura del proyecto

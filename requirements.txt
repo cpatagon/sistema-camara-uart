@@ -1,0 +1,272 @@
+# ============================================================================
+# DEPENDENCIAS PYTHON - SISTEMA DE CÁMARA UART
+# ============================================================================
+#
+# Este archivo especifica todas las dependencias Python necesarias para
+# el sistema de cámara UART. Incluye dependencias core, opcionales y
+# de desarrollo.
+#
+# Instalación:
+#   pip install -r requirements.txt
+#
+# Autor: Sistema de Cámara UART v1.0
+# Fecha: 2025-09-10
+# Compatibilidad: Python 3.7+
+# ============================================================================
+
+# ============================================================================
+# DEPENDENCIAS CORE (OBLIGATORIAS)
+# ============================================================================
+
+# Comunicación serie UART
+pyserial>=3.5,<4.0
+# Biblioteca estable y madura para comunicación serie
+# Usado en: uart_handler.py, cliente_foto.py
+
+# Gestión de configuración
+configparser>=5.0.0
+# Parser de archivos de configuración INI
+# Usado en: config_manager.py
+# Nota: Incluido en Python 3.7+ pero especificamos versión para consistencia
+
+# Utilidades de sistema de archivos
+pathlib2>=2.3.0; python_version < "3.8"
+# Backport de pathlib para Python < 3.8
+# Usado en: Todos los módulos para manejo de rutas
+
+# ============================================================================
+# DEPENDENCIAS DE CÁMARA (RASPBERRY PI)
+# ============================================================================
+
+# Cámara Raspberry Pi (versión moderna)
+picamera2>=0.3.12
+# Nueva biblioteca oficial para cámara Raspberry Pi
+# Reemplaza a picamera (legacy)
+# Usado en: camara_controller.py
+
+# Libcamera Python bindings (dependencia de picamera2)
+# Se instala automáticamente con picamera2 en Raspberry Pi OS
+
+# Procesamiento de imágenes (opcional pero recomendado)
+Pillow>=9.0.0,<11.0.0
+# PIL (Python Imaging Library) para procesamiento de imágenes
+# Usado en: camara_controller.py para información de archivos de imagen
+
+# NumPy (requerido por picamera2)
+numpy>=1.21.0,<2.0.0
+# Biblioteca fundamental para computación científica
+# Requerida por picamera2 y Pillow
+
+# ============================================================================
+# DEPENDENCIAS DE LOGGING Y MONITOREO
+# ============================================================================
+
+# Logging avanzado (opcional)
+colorlog>=6.0.0,<7.0.0
+# Logs con colores para mejor legibilidad en desarrollo
+# Usado en: scripts/cliente_foto.py para output colorido
+
+# Rotación de logs (incluido en Python estándar)
+# logging.handlers.RotatingFileHandler - sin dependencia externa
+
+# ============================================================================
+# DEPENDENCIAS DE DESARROLLO Y TESTING (OPCIONAL)
+# ============================================================================
+
+# Framework de testing
+pytest>=7.0.0,<8.0.0
+# Framework moderno de testing para Python
+# Usado en: tests/ (cuando se implementen)
+
+# Coverage de tests
+pytest-cov>=4.0.0,<5.0.0
+# Plugin de pytest para coverage
+# Usado para: Medir cobertura de tests
+
+# Mocking para tests
+pytest-mock>=3.10.0,<4.0.0
+# Plugin de pytest para mocking
+# Útil para: Testear sin hardware real
+
+# ============================================================================
+# DEPENDENCIAS DE CALIDAD DE CÓDIGO (DESARROLLO)
+# ============================================================================
+
+# Linter principal
+flake8>=5.0.0,<7.0.0
+# Linter para verificar estilo PEP 8
+# Usado para: Mantener calidad de código
+
+# Formatter de código
+black>=22.0.0,<24.0.0
+# Formatter automático de código Python
+# Usado para: Formateo consistente
+
+# Checker de tipos
+mypy>=1.0.0,<2.0.0
+# Type checker estático para Python
+# Usado para: Verificar tipos y detectar errores
+
+# Ordenamiento de imports
+isort>=5.10.0,<6.0.0
+# Ordenar imports automáticamente
+# Usado para: Mantener imports organizados
+
+# ============================================================================
+# DEPENDENCIAS ESPECÍFICAS DE RASPBERRY PI
+# ============================================================================
+
+# GPIO (si se necesita en el futuro)
+# RPi.GPIO>=0.7.1
+# Biblioteca para control de GPIO
+# Comentado: No se usa actualmente pero puede ser útil
+
+# Información del sistema Raspberry Pi
+# gpiozero>=1.6.0
+# Biblioteca simple para GPIO
+# Comentado: No se usa actualmente
+
+# ============================================================================
+# DEPENDENCIAS DE SISTEMA (INSTALADAS VIA APT)
+# ============================================================================
+
+# Estas dependencias se instalan via apt-get, no pip:
+# - python3-picamera2 (alternativa al pip install)
+# - python3-numpy (versión del sistema)
+# - python3-pil (Pillow del sistema)
+# - libcamera-dev (desarrollo libcamera)
+# - python3-libcamera (bindings Python)
+
+# ============================================================================
+# DEPENDENCIAS OPCIONALES AVANZADAS
+# ============================================================================
+
+# Cliente HTTP (para futuras integraciones web)
+requests>=2.28.0,<3.0.0
+# Biblioteca HTTP para Python
+# Usado para: Futuras integraciones con APIs web
+
+# Serialización JSON avanzada
+ujson>=5.0.0,<6.0.0
+# JSON más rápido que el estándar
+# Usado para: Serialización de estadísticas y logs
+
+# Compresión (para transferencia de archivos)
+zstandard>=0.19.0,<1.0.0
+# Algoritmo de compresión moderno y rápido
+# Alternativa a zlib para file_transfer.py
+
+# Hashing criptográfico
+hashlib-compat>=1.0.0; python_version < "3.8"
+# Backport de funciones hash para Python < 3.8
+# Usado en: file_transfer.py para checksums
+
+# ============================================================================
+# DEPENDENCIAS DE DOCUMENTACIÓN (DESARROLLO)
+# ============================================================================
+
+# Generador de documentación
+sphinx>=5.0.0,<7.0.0
+# Generador de documentación
+# Usado para: Generar docs/ automáticamente
+
+# Tema para Sphinx
+sphinx-rtd-theme>=1.2.0,<2.0.0
+# Tema Read the Docs para Sphinx
+# Usado para: Documentación con aspecto profesional
+
+# ============================================================================
+# VERSIONES ESPECÍFICAS PARA COMPATIBILIDAD
+# ============================================================================
+
+# Estas versiones han sido probadas y funcionan correctamente:
+
+# Python 3.7 específico
+dataclasses>=0.8; python_version < "3.7"
+# Backport de dataclasses para Python < 3.7
+# Usado en: Múltiples módulos que usan @dataclass
+
+# Typing backport para Python < 3.8
+typing-extensions>=4.0.0; python_version < "3.8"
+# Backport de nuevas características de typing
+# Usado en: Type hints avanzados
+
+# ============================================================================
+# DEPENDENCIAS DE PRODUCCIÓN OPCIONAL
+# ============================================================================
+
+# Supervisor de procesos (alternativa a systemd)
+# supervisor>=4.2.0
+# Comentado: Se usa systemd por defecto
+
+# Monitoreo de aplicación
+# psutil>=5.9.0
+# Información de sistema y procesos
+# Útil para: Monitoreo de recursos del sistema
+
+# Base de datos ligera (para futuro logging estructurado)
+# sqlite3 (incluido en Python estándar)
+
+# ============================================================================
+# NOTAS DE INSTALACIÓN
+# ============================================================================
+
+# INSTALACIÓN ESTÁNDAR:
+# pip install -r requirements.txt
+
+# INSTALACIÓN SOLO DEPENDENCIAS CORE:
+# pip install pyserial configparser picamera2 numpy Pillow
+
+# INSTALACIÓN EN RASPBERRY PI OS:
+# sudo apt update
+# sudo apt install python3-picamera2 python3-numpy python3-pil
+# pip install pyserial configparser colorlog
+
+# INSTALACIÓN CON DEPENDENCIAS DE DESARROLLO:
+# pip install -r requirements.txt
+# pip install -r requirements-dev.txt  # (si se crea)
+
+# VERIFICAR INSTALACIÓN:
+# python -c "import serial, configparser, picamera2, numpy, PIL; print('OK')"
+
+# ============================================================================
+# COMPATIBILIDAD Y VERSIONES
+# ============================================================================
+
+# VERSIONES DE PYTHON SOPORTADAS:
+# - Python 3.7+ (requerido)
+# - Python 3.8+ (recomendado)
+# - Python 3.9+ (óptimo)
+# - Python 3.10+ (última)
+
+# PLATAFORMAS SOPORTADAS:
+# - Raspberry Pi OS (principal)
+# - Debian 11+ (compatible)
+# - Ubuntu 20.04+ (compatible)
+
+# ARQUITECTURAS SOPORTADAS:
+# - ARM (Raspberry Pi)
+# - ARM64 (Raspberry Pi 4)
+# - x86_64 (para desarrollo en PC)
+
+# ============================================================================
+# TROUBLESHOOTING DE DEPENDENCIAS
+# ============================================================================
+
+# SI PICAMERA2 FALLA EN INSTALAR:
+# sudo apt install python3-picamera2
+
+# SI NUMPY TOMA MUCHO TIEMPO EN COMPILAR:
+# sudo apt install python3-numpy
+
+# SI HAY PROBLEMAS CON PILLOW:
+# sudo apt install python3-pil python3-pil.imagetk
+
+# SI PYSERIAL NO FUNCIONA:
+# sudo apt install python3-serial
+
+# PARA LIMPIAR Y REINSTALAR:
+# pip uninstall -r requirements.txt -y
+# pip install -r requirements.txt
+
+# ============================================================================

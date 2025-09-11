@@ -1,0 +1,69 @@
+# ============================================================================
+# .gitkeep - DIRECTORIO DE LOGS
+# ============================================================================
+#
+# Este archivo mantiene el directorio logs/ en Git.
+# Git no trackea directorios vacíos, por lo que este archivo garantiza
+# que la estructura de directorios se preserve al clonar el repositorio.
+#
+# Directorio: logs/
+# Propósito: Almacenar logs locales del proyecto (logs del sistema van a /var/log/)
+# Autor: Sistema de Cámara UART v1.0
+# ============================================================================
+
+# INFORMACIÓN DEL DIRECTORIO:
+# - Logs de desarrollo y testing local
+# - Logs de debugging cuando no se ejecuta como servicio
+# - Archivos de log rotativos con timestamp
+# - Los logs del sistema van a /var/log/camara-uart/
+
+# TIPOS DE LOGS:
+# - desarrollo.log          # Logs durante desarrollo
+# - debug.log               # Logs de debugging detallado
+# - cliente.log             # Logs del cliente de pruebas
+# - testing.log             # Logs de tests automáticos
+# - error.log               # Solo errores críticos
+
+# ROTACIÓN DE LOGS:
+# - Rotación automática cuando superan 10MB
+# - Mantiene 5 archivos de backup
+# - Formato: nombre.log, nombre.log.1, nombre.log.2, etc.
+# - Compresión automática de archivos antiguos
+
+# CONFIGURACIÓN DE LOGGING:
+# Ver config/camara.conf sección [LOGGING]:
+# - nivel = INFO                    # DEBUG, INFO, WARNING, ERROR, CRITICAL
+# - archivo = logs/camara-uart.log  # Para ejecución local
+# - max_size_mb = 10               # Tamaño máximo por archivo
+# - backup_count = 5               # Número de backups a mantener
+
+# LOGS DEL SISTEMA VS LOCALES:
+# LOCAL (logs/):              SISTEMA (/var/log/):
+# - Desarrollo               - Producción
+# - Testing                  - Servicio systemd  
+# - Debug manual             - Monitoreo automático
+# - No requiere sudo         - Requiere permisos de sistema
+
+# COMANDOS ÚTILES:
+# tail -f logs/camara-uart.log        # Ver logs en tiempo real
+# grep ERROR logs/*.log               # Buscar errores en todos los logs
+# ls -lah logs/                       # Ver tamaño de archivos de log
+# find logs/ -name "*.log" -mtime +7  # Logs más antiguos de 7 días
+
+# NIVELES DE LOG:
+# DEBUG   - Información detallada para desarrollo
+# INFO    - Información general de operación  
+# WARNING - Advertencias que no impiden funcionamiento
+# ERROR   - Errores que afectan funcionalidad
+# CRITICAL- Errores críticos que detienen el sistema
+
+# FORMATO DE LOGS:
+# Formato estándar: YYYY-MM-DD HH:MM:SS - MÓDULO - NIVEL - MENSAJE
+# Ejemplo: 2025-09-10 14:30:52 - camara_controller - INFO - Foto capturada exitosamente
+
+# PRIVACIDAD:
+# - Los archivos *.log están en .gitignore (no se suben a GitHub)
+# - No incluir información sensible en logs
+# - Rotar/limpiar logs regularmente en producción
+
+# NO ELIMINAR ESTE ARCHIVO - Mantiene la estructura del proyecto
