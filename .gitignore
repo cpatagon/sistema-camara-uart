@@ -15,8 +15,8 @@
 # ============================================================================
 
 # Configuración real (contiene configuraciones específicas del usuario)
-config/camara.conf
-config/*.conf
+!config/camara.conf
+!config/*.conf
 !config/*.conf.example
 
 # Archivos de backup de configuración
