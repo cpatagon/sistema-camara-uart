@@ -356,11 +356,22 @@ class SistemaCamaraUART:
                     return f"ERROR|FILE_NOT_FOUND|{nombre_archivo}"
                 
                 # Programar transferencia
+'''
                 id_transferencia = self.transfer_manager.programar_envio(
                     info_archivo['ruta_completa'],
                     self.uart_handler,
-                    nombre_archivo
+                    nombre_archivo */
                 )
+'''
+               
+                from file_transfer_protocol import FileTransferProtocol
+                ftp = FileTransferProtocol(self.uart_handler, self.logger)
+                ok = ftp.enviar_archivo(info_archivo['ruta_completa'])
+                if ok:
+                    return f"DOWNLOAD_OK|{nombre_archivo}|{info_archivo['tamaño_bytes']}"
+                else:
+                    return f"ERROR|DOWNLOAD_FAILED|{nombre_archivo}"
+
                 
                 self.estadisticas_sistema['comandos_procesados'] += 1
                 return f"DOWNLOAD_STARTED|{id_transferencia}|{info_archivo['tamaño_bytes']}"
