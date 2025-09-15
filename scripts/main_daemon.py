@@ -427,6 +427,111 @@ class SistemaCamaraUART:
             except Exception as e:
                 return f"ERROR|TEST_FAILED|{str(e)}"
         
+        
+        # ===== COMANDOS FOTODESCARGA AGREGADOS =====
+        
+        # Comando: fotodescarga - Toma foto y la descarga automáticamente
+        def cmd_fotodescarga(comando):
+            try:
+                nombre_personalizado = None
+                if comando.parametros:
+                    nombre_personalizado = comando.parametros[0]
+                
+                # Tomar la foto
+                self.logger.info("FotoDescarga: Iniciando captura...")
+                info_captura = self.camara_controller.tomar_foto(nombre_personalizado)
+                
+                if not info_captura.exito:
+                    return f"ERROR|CAPTURE_FAILED|{info_captura.error}"
+                
+                nombre_archivo = info_captura.nombre_archivo
+                tamaño_bytes = info_captura.tamaño_bytes
+                ruta_completa = info_captura.ruta_completa
+                
+                self.logger.info(f"FotoDescarga: Foto capturada - {nombre_archivo}")
+                
+                # Iniciar descarga automática
+                try:
+                    id_transferencia = self.transfer_manager.programar_envio(
+                        ruta_completa,
+                        self.uart_handler,
+                        nombre_archivo
+                    )
+                    
+                    respuesta = (f"FOTODESCARGA_OK|{nombre_archivo}|{tamaño_bytes}|"
+                               f"{id_transferencia}|{ruta_completa}")
+                    
+                    self.estadisticas_sistema['fotos_tomadas'] += 1
+                    self.estadisticas_sistema['comandos_procesados'] += 1
+                    
+                    return respuesta
+                    
+                except Exception as e_transfer:
+                    self.logger.error(f"FotoDescarga: Error transferencia - {e_transfer}")
+                    return (f"FOTODESCARGA_PARTIAL|{nombre_archivo}|{tamaño_bytes}|"
+                           f"TRANSFER_ERROR|{str(e_transfer)}")
+                
+            except Exception as e:
+                self.estadisticas_sistema['errores_totales'] += 1
+                return f"ERROR|FOTODESCARGA_FAILED|{str(e)}"
+        
+        # Comando: fotoinmediata - Foto temporal que se descarga y elimina
+        def cmd_fotoinmediata(comando):
+            try:
+                import uuid
+                
+                nombre_temp = f"temp_{uuid.uuid4().hex[:8]}.jpg"
+                if comando.parametros:
+                    nombre_temp = f"{comando.parametros[0]}_temp.jpg"
+                
+                directorio_temp = Path("data/temp")
+                directorio_temp.mkdir(exist_ok=True)
+                ruta_temp = directorio_temp / nombre_temp
+                
+                # Tomar foto temporal (usar método normal por ahora)
+                info_captura = self.camara_controller.tomar_foto(f"temp_{uuid.uuid4().hex[:8]}")
+                
+                if not info_captura.exito:
+                    return f"ERROR|CAPTURE_IMMEDIATE_FAILED|{info_captura.error}"
+                
+                # Mover a temporal
+                shutil.move(info_captura.ruta_completa, str(ruta_temp))
+                tamaño_bytes = ruta_temp.stat().st_size
+                
+                # Transferir inmediatamente
+                try:
+                    id_transferencia = self.transfer_manager.programar_envio(
+                        str(ruta_temp),
+                        self.uart_handler,
+                        nombre_temp
+                    )
+                    
+                    # Programar eliminación
+                    def eliminar_temporal():
+                        time.sleep(5)
+                        try:
+                            if ruta_temp.exists():
+                                ruta_temp.unlink()
+                        except:
+                            pass
+                    
+                    threading.Thread(target=eliminar_temporal, daemon=True).start()
+                    
+                    return (f"FOTOINMEDIATA_OK|{nombre_temp}|{tamaño_bytes}|"
+                           f"{id_transferencia}|TEMPORAL")
+                    
+                except Exception as e_transfer:
+                    return f"ERROR|TRANSFER_IMMEDIATE_FAILED|{str(e_transfer)}"
+                
+            except Exception as e:
+                return f"ERROR|FOTOINMEDIATA_FAILED|{str(e)}"
+        
+        # Comando: fotorapida - Alias simple para fotodescarga
+        def cmd_fotorapida(comando):
+            return cmd_fotodescarga(comando)
+        
+        # ===== FIN COMANDOS FOTODESCARGA =====
+
         # Comando: salir
         def cmd_salir(comando):
             self.logger.info("Comando de salida recibido")
@@ -456,6 +561,14 @@ class SistemaCamaraUART:
             'reiniciar': cmd_reiniciar_camara,
             'restart': cmd_reiniciar_camara,  # Alias
             'test': cmd_test_sistema,
+            
+            # Comandos combinados foto + descarga
+            'fotodescarga': cmd_fotodescarga,
+            'photodownload': cmd_fotodescarga,  # Alias inglés
+            'fotoinmediata': cmd_fotoinmediata,
+            'photonow': cmd_fotoinmediata,  # Alias inglés
+            'fotorapida': cmd_fotorapida,
+            'quickphoto': cmd_fotorapida,  # Alias inglés
             'salir': cmd_salir,
             'exit': cmd_salir,  # Alias
             'quit': cmd_salir   # Alias
