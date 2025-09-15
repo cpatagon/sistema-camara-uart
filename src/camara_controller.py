@@ -1,10 +1,11 @@
 """
-Controlador de Cámara - Versión Simplificada y Funcional
-Compatible con el daemon principal
+Controlador de Cámara - Versión Actualizada para rpicam-apps
+Compatible con Raspberry Pi OS Bookworm y manteniendo compatibilidad con libcamera-*
 """
 
 import os
 import time
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -15,13 +16,14 @@ try:
     from picamera2 import Picamera2
     PICAMERA_AVAILABLE = True
 except ImportError:
-    print("⚠️  picamera2 no disponible, usando modo simulación")
+    print("⚠️  picamera2 no disponible, usando comandos del sistema")
     PICAMERA_AVAILABLE = False
     Picamera2 = None
 
 class CamaraController:
     """
-    Controlador de cámara compatible con el daemon
+    Controlador de cámara compatible con rpicam-apps (Raspberry Pi OS Bookworm)
+    y libcamera-* (versiones anteriores), con fallback a picamera2
     """
     
     def __init__(self, config_manager=None):
@@ -50,43 +52,109 @@ class CamaraController:
         self.ultima_captura = None
         self.historial_capturas = []
         
+        # Detectar comandos de cámara disponibles
+        self.cmd_still = self._detectar_comando_camara()
+        self.metodo_captura = self._determinar_metodo_captura()
+        
         self.logger.info(f"CamaraController inicializado")
         self.logger.info(f"Directorio: {self.directorio}")
         self.logger.info(f"Resolución: {self.resolucion_default[0]}x{self.resolucion_default[1]}")
-        self.logger.info(f"PiCamera2 disponible: {PICAMERA_AVAILABLE}")
+        self.logger.info(f"Comando de cámara: {self.cmd_still}")
+        self.logger.info(f"Método de captura: {self.metodo_captura}")
+    
+    def _detectar_comando_camara(self) -> str:
+        """Detecta qué comando de cámara está disponible"""
+        comandos_a_probar = [
+            'rpicam-still',     # Raspberry Pi OS Bookworm+
+            'libcamera-still',  # Raspberry Pi OS anteriores
+            'rpicam-jpeg',      # Alternativa en Bookworm
+            'libcamera-jpeg'    # Alternativa en versiones anteriores
+        ]
+        
+        for cmd in comandos_a_probar:
+            try:
+                # Probar si el comando existe
+                result = subprocess.run([cmd, '--help'], 
+                                      capture_output=True, 
+                                      timeout=5)
+                if result.returncode == 0 or 'usage' in result.stderr.decode().lower():
+                    self.logger.info(f"Comando de cámara detectado: {cmd}")
+                    return cmd
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                continue
+        
+        self.logger.warning("No se detectó comando de cámara del sistema")
+        return None
+    
+    def _determinar_metodo_captura(self) -> str:
+        """Determina el mejor método de captura disponible"""
+        if self.cmd_still:
+            return "sistema"
+        elif PICAMERA_AVAILABLE:
+            return "picamera2"
+        else:
+            return "simulacion"
     
     def verificar_camara_disponible(self) -> bool:
         """Verifica si la cámara está disponible"""
-        if not PICAMERA_AVAILABLE:
-            self.logger.warning("PiCamera2 no disponible")
-            return False
-        
+        if self.metodo_captura == "sistema":
+            return self._verificar_camara_sistema()
+        elif self.metodo_captura == "picamera2":
+            return self._verificar_camara_picamera2()
+        else:
+            return True  # Simulación siempre disponible
+    
+    def _verificar_camara_sistema(self) -> bool:
+        """Verifica cámara usando comandos del sistema"""
         try:
-            # Intentar crear instancia básica
-            picam2 = Picamera2()
+            # Usar comando rpicam-hello o libcamera-hello para verificar
+            cmd_hello = self.cmd_still.replace('-still', '-hello').replace('-jpeg', '-hello')
             
-            # Cerrar inmediatamente
-            picam2.close()
+            result = subprocess.run([
+                cmd_hello, 
+                '--timeout', '100',  # Timeout muy corto
+                '--nopreview'
+            ], capture_output=True, timeout=10)
             
-            self.logger.info("Cámara disponible")
-            return True
-            
+            if result.returncode == 0:
+                self.logger.info("Cámara disponible (verificada con comandos del sistema)")
+                return True
+            else:
+                self.logger.warning(f"Cámara no disponible: {result.stderr.decode()}")
+                return False
+                
         except Exception as e:
-            self.logger.warning(f"Cámara no disponible: {e}")
+            self.logger.warning(f"Error verificando cámara con comandos del sistema: {e}")
+            return False
+    
+    def _verificar_camara_picamera2(self) -> bool:
+        """Verifica cámara usando picamera2"""
+        try:
+            picam2 = Picamera2()
+            picam2.close()
+            self.logger.info("Cámara disponible (verificada con picamera2)")
+            return True
+        except Exception as e:
+            self.logger.warning(f"Cámara no disponible con picamera2: {e}")
             return False
     
     def tomar_foto(self, nombre_personalizado: str = None) -> 'InfoCaptura':
-        """
-        Toma una fotografía con timestamp
-        """
-        picam2 = None
+        """Toma una fotografía usando el método disponible"""
+        if self.metodo_captura == "sistema":
+            return self._tomar_foto_sistema(nombre_personalizado)
+        elif self.metodo_captura == "picamera2":
+            return self._tomar_foto_picamera2(nombre_personalizado)
+        else:
+            return self._tomar_foto_simulada(nombre_personalizado)
+    
+    def _tomar_foto_sistema(self, nombre_personalizado: str = None) -> 'InfoCaptura':
+        """Toma foto usando comandos del sistema (rpicam-* o libcamera-*)"""
         info_captura = InfoCaptura()
         
         try:
             # Generar nombre de archivo
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             if nombre_personalizado:
-                # Limpiar nombre personalizado
                 nombre_limpio = "".join(c for c in nombre_personalizado if c.isalnum() or c in "._-")
                 nombre_archivo = f"{nombre_limpio}_{timestamp}.{self.formato}"
             else:
@@ -94,29 +162,100 @@ class CamaraController:
             
             ruta_completa = Path(self.directorio) / nombre_archivo
             
-            if PICAMERA_AVAILABLE:
-                # Inicializar cámara real
-                picam2 = Picamera2()
-                config = picam2.create_still_configuration(
-                    main={"size": self.resolucion_default}
-                )
-                picam2.configure(config)
-                picam2.start()
-                
-                # Pausa para estabilizar
-                time.sleep(0.5)
-                
-                # Capturar foto
-                picam2.capture_file(str(ruta_completa))
-                
+            # Construir comando con sintaxis correcta
+            ancho, alto = self.resolucion_default
+            
+            if 'rpicam-' in self.cmd_still:
+                # Sintaxis rpicam-still (Bookworm)
+                cmd = [
+                    self.cmd_still,
+                    '-o', str(ruta_completa),  # -o en lugar de --output
+                    '--width', str(ancho),
+                    '--height', str(alto),
+                    '--quality', str(self.calidad),
+                    '-t', '2000'  # -t en lugar de --timeout (en ms)
+                ]
             else:
-                # Simular captura creando archivo dummy
-                self._crear_foto_simulada(ruta_completa)
+                # Sintaxis libcamera-still (anteriores)  
+                cmd = [
+                    self.cmd_still,
+                    '--output', str(ruta_completa),
+                    '--width', str(ancho),
+                    '--height', str(alto),
+                    '--quality', str(self.calidad),
+                    '--timeout', '2000'  # En milisegundos
+                ]
+            
+            # Ejecutar comando
+            self.logger.debug(f"Ejecutando: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, timeout=15)
+            
+            if result.returncode == 0 and ruta_completa.exists():
+                # Captura exitosa
+                tamaño_bytes = ruta_completa.stat().st_size
+                
+                info_captura.exito = True
+                info_captura.nombre_archivo = nombre_archivo
+                info_captura.ruta_completa = str(ruta_completa)
+                info_captura.tamaño_bytes = tamaño_bytes
+                info_captura.timestamp = timestamp
+                info_captura.resolucion = self.resolucion_default
+                info_captura.tiempo_captura = time.time() - info_captura.tiempo_inicio
+                
+                self.logger.info(f"Foto capturada con {self.cmd_still}: {nombre_archivo} ({tamaño_bytes} bytes)")
+            else:
+                # Error en captura
+                error_msg = result.stderr.decode() if result.stderr else "Error desconocido"
+                raise Exception(f"Comando falló: {error_msg}")
+            
+        except Exception as e:
+            self.logger.error(f"Error en captura con comandos del sistema: {e}")
+            info_captura.exito = False
+            info_captura.error = str(e)
+            info_captura.tiempo_captura = time.time() - info_captura.tiempo_inicio
+        
+        # Actualizar estadísticas
+        if info_captura.exito:
+            self.capturas_realizadas += 1
+            self.ultima_captura = info_captura
+            self.historial_capturas.append(info_captura)
+            self._mantener_historial_limitado()
+        
+        return info_captura
+    
+    def _tomar_foto_picamera2(self, nombre_personalizado: str = None) -> 'InfoCaptura':
+        """Toma foto usando picamera2 (método de respaldo)"""
+        picam2 = None
+        info_captura = InfoCaptura()
+        
+        try:
+            # Generar nombre de archivo
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if nombre_personalizado:
+                nombre_limpio = "".join(c for c in nombre_personalizado if c.isalnum() or c in "._-")
+                nombre_archivo = f"{nombre_limpio}_{timestamp}.{self.formato}"
+            else:
+                nombre_archivo = f"{timestamp}.{self.formato}"
+            
+            ruta_completa = Path(self.directorio) / nombre_archivo
+            
+            # Inicializar cámara
+            picam2 = Picamera2()
+            config = picam2.create_still_configuration(
+                main={"size": self.resolucion_default}
+            )
+            picam2.configure(config)
+            picam2.start()
+            
+            # Pausa para estabilizar
+            time.sleep(0.5)
+            
+            # Capturar foto
+            picam2.capture_file(str(ruta_completa))
             
             # Obtener información del archivo
             tamaño_bytes = ruta_completa.stat().st_size
             
-            # Actualizar información de captura
             info_captura.exito = True
             info_captura.nombre_archivo = nombre_archivo
             info_captura.ruta_completa = str(ruta_completa)
@@ -125,28 +264,13 @@ class CamaraController:
             info_captura.resolucion = self.resolucion_default
             info_captura.tiempo_captura = time.time() - info_captura.tiempo_inicio
             
-            # Actualizar estadísticas
-            self.capturas_realizadas += 1
-            self.ultima_captura = info_captura
-            self.historial_capturas.append(info_captura)
-            
-            # Mantener historial limitado
-            if len(self.historial_capturas) > 100:
-                self.historial_capturas = self.historial_capturas[-50:]
-            
-            self.logger.info(f"Foto capturada: {nombre_archivo} ({tamaño_bytes} bytes)")
-            
-            return info_captura
+            self.logger.info(f"Foto capturada con picamera2: {nombre_archivo} ({tamaño_bytes} bytes)")
             
         except Exception as e:
-            error_msg = f"Error al tomar foto: {e}"
-            self.logger.error(error_msg)
-            
+            self.logger.error(f"Error en captura con picamera2: {e}")
             info_captura.exito = False
             info_captura.error = str(e)
             info_captura.tiempo_captura = time.time() - info_captura.tiempo_inicio
-            
-            return info_captura
             
         finally:
             if picam2 is not None:
@@ -156,14 +280,84 @@ class CamaraController:
                 except:
                     pass
                 time.sleep(0.2)
+        
+        # Actualizar estadísticas
+        if info_captura.exito:
+            self.capturas_realizadas += 1
+            self.ultima_captura = info_captura
+            self.historial_capturas.append(info_captura)
+            self._mantener_historial_limitado()
+        
+        return info_captura
     
-    def _crear_foto_simulada(self, ruta: Path):
+    def _tomar_foto_simulada(self, nombre_personalizado: str = None) -> 'InfoCaptura':
         """Crea una foto simulada para testing"""
-        # Crear un archivo de imagen dummy simple
-        contenido_dummy = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.\' ",#\x1c\x1c(7),01444\x1f\'9=82<.342\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x01\x01\x11\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\xff\xc4\x00\x14\x10\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00\x3f\x00\xaa\xff\xd9'
+        info_captura = InfoCaptura()
+        
+        try:
+            # Generar nombre de archivo
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if nombre_personalizado:
+                nombre_limpio = "".join(c for c in nombre_personalizado if c.isalnum() or c in "._-")
+                nombre_archivo = f"{nombre_limpio}_{timestamp}.{self.formato}"
+            else:
+                nombre_archivo = f"{timestamp}.{self.formato}"
+            
+            ruta_completa = Path(self.directorio) / nombre_archivo
+            
+            # Crear archivo de imagen dummy
+            self._crear_foto_dummy(ruta_completa)
+            
+            # Obtener información del archivo
+            tamaño_bytes = ruta_completa.stat().st_size
+            
+            info_captura.exito = True
+            info_captura.nombre_archivo = nombre_archivo
+            info_captura.ruta_completa = str(ruta_completa)
+            info_captura.tamaño_bytes = tamaño_bytes
+            info_captura.timestamp = timestamp
+            info_captura.resolucion = self.resolucion_default
+            info_captura.tiempo_captura = time.time() - info_captura.tiempo_inicio
+            
+            self.logger.info(f"Foto simulada creada: {nombre_archivo} ({tamaño_bytes} bytes)")
+            
+        except Exception as e:
+            self.logger.error(f"Error creando foto simulada: {e}")
+            info_captura.exito = False
+            info_captura.error = str(e)
+            info_captura.tiempo_captura = time.time() - info_captura.tiempo_inicio
+        
+        # Actualizar estadísticas
+        if info_captura.exito:
+            self.capturas_realizadas += 1
+            self.ultima_captura = info_captura
+            self.historial_capturas.append(info_captura)
+            self._mantener_historial_limitado()
+        
+        return info_captura
+    
+    def _crear_foto_dummy(self, ruta: Path):
+        """Crea una foto dummy simple pero válida"""
+        # Header JPEG mínimo válido
+        contenido_dummy = (
+            b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00'
+            b'\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08'
+            b'\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a\x1f\x1e'
+            b'\x1d\x1a\x1c\x1c $.\' ",#\x1c\x1c(7),01444\x1f\'9=82<.342\xff'
+            b'\xc0\x00\x11\x08\x00\x01\x00\x01\x01\x01\x11\x00\x02\x11\x01\x03'
+            b'\x11\x01\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00'
+            b'\x00\x00\x00\x00\x00\x00\x00\x08\xff\xc4\x00\x14\x10\x01\x00\x00'
+            b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xda'
+            b'\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00\x3f\x00\xaa\xff\xd9'
+        )
         
         with open(ruta, 'wb') as f:
             f.write(contenido_dummy)
+    
+    def _mantener_historial_limitado(self):
+        """Mantiene el historial de capturas limitado"""
+        if len(self.historial_capturas) > 100:
+            self.historial_capturas = self.historial_capturas[-50:]
     
     def cambiar_resolucion(self, ancho: int, alto: int) -> bool:
         """Cambia la resolución por defecto"""
@@ -172,7 +366,7 @@ class CamaraController:
             resoluciones_soportadas = [
                 (640, 480), (800, 600), (1024, 768),
                 (1280, 720), (1280, 1024), (1920, 1080),
-                (2592, 1944)
+                (2592, 1944), (2304, 1296), (3280, 2464)
             ]
             
             nueva_resolucion = (ancho, alto)
@@ -205,8 +399,36 @@ class CamaraController:
             'alto': alto,
             'megapixeles': f"{megapixeles:.1f}",
             'formato': self.formato,
-            'calidad': self.calidad
+            'calidad': self.calidad,
+            'metodo_captura': self.metodo_captura,
+            'comando_usado': self.cmd_still or 'N/A'
         }
+    
+    def obtener_info_sistema_camara(self) -> Dict[str, Any]:
+        """Obtiene información detallada del sistema de cámara"""
+        info = {
+            'metodo_captura': self.metodo_captura,
+            'comandos_disponibles': {},
+            'picamera2_disponible': PICAMERA_AVAILABLE,
+            'comando_activo': self.cmd_still
+        }
+        
+        # Verificar disponibilidad de comandos
+        comandos_a_verificar = [
+            'rpicam-still', 'rpicam-vid', 'rpicam-hello', 'rpicam-jpeg',
+            'libcamera-still', 'libcamera-vid', 'libcamera-hello', 'libcamera-jpeg'
+        ]
+        
+        for cmd in comandos_a_verificar:
+            try:
+                result = subprocess.run([cmd, '--help'], 
+                                      capture_output=True, 
+                                      timeout=3)
+                info['comandos_disponibles'][cmd] = result.returncode == 0
+            except:
+                info['comandos_disponibles'][cmd] = False
+        
+        return info
     
     def listar_archivos(self) -> List[Dict[str, Any]]:
         """Lista archivos en el directorio de fotos"""
@@ -311,10 +533,11 @@ class CamaraController:
         try:
             self.logger.info("Reinicializando sistema de cámara...")
             
-            # No hay mucho que reinicializar en el controlador actual
-            # pero podríamos agregar lógica aquí si fuera necesario
+            # Re-detectar comandos disponibles
+            self.cmd_still = self._detectar_comando_camara()
+            self.metodo_captura = self._determinar_metodo_captura()
             
-            self.logger.info("Sistema de cámara reinicializado")
+            self.logger.info(f"Sistema reinicializado - Método: {self.metodo_captura}, Comando: {self.cmd_still}")
             return True
             
         except Exception as e:
@@ -328,32 +551,39 @@ class CamaraController:
             info_captura = self.tomar_foto("test_captura")
             tiempo_captura = time.time() - inicio
             
+            resultado = {
+                'exito': info_captura.exito,
+                'tiempo_captura': tiempo_captura,
+                'metodo_usado': self.metodo_captura,
+                'comando_usado': self.cmd_still or 'N/A'
+            }
+            
             if info_captura.exito:
-                return {
-                    'exito': True,
-                    'tiempo_captura': tiempo_captura,
+                resultado.update({
                     'archivo': info_captura.nombre_archivo,
-                    'tamaño': info_captura.tamaño_bytes
-                }
+                    'tamaño': info_captura.tamaño_bytes,
+                    'resolucion': f"{info_captura.resolucion[0]}x{info_captura.resolucion[1]}"
+                })
             else:
-                return {
-                    'exito': False,
-                    'error': info_captura.error,
-                    'tiempo_captura': tiempo_captura
-                }
+                resultado['error'] = info_captura.error
+            
+            return resultado
                 
         except Exception as e:
             return {
                 'exito': False,
                 'error': str(e),
-                'tiempo_captura': 0.0
+                'tiempo_captura': 0.0,
+                'metodo_usado': self.metodo_captura
             }
     
     def obtener_estado_sistema(self) -> Dict[str, Any]:
         """Obtiene estado del sistema de cámara"""
         return {
             'estado_camara': 'disponible' if self.verificar_camara_disponible() else 'no_disponible',
-            'picamera_disponible': PICAMERA_AVAILABLE,
+            'metodo_captura': self.metodo_captura,
+            'comando_activo': self.cmd_still,
+            'picamera2_disponible': PICAMERA_AVAILABLE,
             'configuracion': {
                 'directorio': self.directorio,
                 'resolucion': f"{self.resolucion_default[0]}x{self.resolucion_default[1]}",
@@ -367,7 +597,8 @@ class CamaraController:
             'archivos': {
                 'directorio': self.directorio,
                 'total_archivos': len(self.listar_archivos())
-            }
+            },
+            'comandos_sistema': self.obtener_info_sistema_camara()['comandos_disponibles']
         }
     
     def limpiar_historial(self, mantener: int = 50):
@@ -398,6 +629,51 @@ class InfoCaptura:
         self.error = ""
         self.tiempo_inicio = time.time()
         self.tiempo_captura = 0.0
+
+
+# Función de utilidad para crear alias de comandos
+def crear_alias_compatibilidad():
+    """
+    Crea alias para mantener compatibilidad con libcamera-*
+    cuando solo están disponibles los comandos rpicam-*
+    """
+    alias_map = {
+        'libcamera-still': 'rpicam-still',
+        'libcamera-vid': 'rpicam-vid', 
+        'libcamera-hello': 'rpicam-hello',
+        'libcamera-jpeg': 'rpicam-jpeg'
+    }
+    
+    aliases_creados = []
+    
+    for comando_viejo, comando_nuevo in alias_map.items():
+        try:
+            # Verificar si el comando nuevo existe
+            subprocess.run([comando_nuevo, '--help'], 
+                          capture_output=True, timeout=3)
+            
+            # Verificar si el comando viejo NO existe
+            try:
+                subprocess.run([comando_viejo, '--help'], 
+                              capture_output=True, timeout=3)
+                continue  # El comando viejo ya existe
+            except FileNotFoundError:
+                pass
+            
+            # Crear alias usando ln -s
+            alias_path = f"/usr/local/bin/{comando_viejo}"
+            comando_completo = subprocess.run(['which', comando_nuevo], 
+                                            capture_output=True, text=True)
+            
+            if comando_completo.returncode == 0:
+                ruta_comando_nuevo = comando_completo.stdout.strip()
+                subprocess.run(['sudo', 'ln', '-s', ruta_comando_nuevo, alias_path])
+                aliases_creados.append(f"{comando_viejo} -> {comando_nuevo}")
+                
+        except Exception:
+            continue
+    
+    return aliases_creados
 
 
 # Aliases para compatibilidad
