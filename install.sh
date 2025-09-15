@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script de instalación actualizado - Sistema de Cámara UART
+# Script de instalación corregido - Sistema de Cámara UART
 # Compatible con rpicam-apps (Raspberry Pi OS Bookworm) y libcamera-* (versiones anteriores)
 
 set -e
@@ -46,41 +46,6 @@ detect_rpi_version() {
 RPI_VERSION=$(detect_rpi_version)
 print_info "Versión detectada de Raspberry Pi OS: $RPI_VERSION"
 
-# Función para detectar comandos de cámara disponibles
-detect_camera_commands() {
-    local commands_found=()
-    local rpicam_commands=("rpicam-still" "rpicam-vid" "rpicam-hello" "rpicam-jpeg")
-    local libcamera_commands=("libcamera-still" "libcamera-vid" "libcamera-hello" "libcamera-jpeg")
-    
-    print_info "Detectando comandos de cámara disponibles..."
-    
-    # Verificar comandos rpicam-* (Bookworm+)
-    for cmd in "${rpicam_commands[@]}"; do
-        if command -v "$cmd" &> /dev/null; then
-            commands_found+=("$cmd")
-        fi
-    done
-    
-    # Verificar comandos libcamera-* (versiones anteriores)
-    for cmd in "${libcamera_commands[@]}"; do
-        if command -v "$cmd" &> /dev/null; then
-            commands_found+=("$cmd")
-        fi
-    done
-    
-    if [[ ${#commands_found[@]} -gt 0 ]]; then
-        print_success "Comandos de cámara encontrados:"
-        for cmd in "${commands_found[@]}"; do
-            echo "   • $cmd"
-        done
-    else
-        print_warning "No se encontraron comandos de cámara del sistema"
-        print_info "Se instalará soporte para picamera2 como alternativa"
-    fi
-    
-    echo "${commands_found[@]}"
-}
-
 # Función para instalar paquetes de cámara según la versión
 install_camera_packages() {
     print_info "Instalando paquetes de cámara..."
@@ -95,51 +60,27 @@ install_camera_packages() {
     case "$RPI_VERSION" in
         "bookworm")
             print_info "Instalando rpicam-apps para Raspberry Pi OS Bookworm..."
-            # En Bookworm, usar los paquetes específicos correctos
-            if sudo apt install -y rpicam-apps-core rpicam-apps; then
-                print_success "rpicam-apps instalado correctamente"
+            if sudo apt install -y rpicam-apps-core; then
+                print_success "rpicam-apps-core instalado correctamente"
+                
+                # Intentar también el metapaquete si está disponible
+                if sudo apt install -y rpicam-apps 2>/dev/null; then
+                    print_success "rpicam-apps (metapaquete) también instalado"
+                fi
             else
-                print_warning "rpicam-apps no disponible, intentando alternativas..."
-                # Fallback para repositorios que
-
-# Función para crear alias de compatibilidad
-create_compatibility_aliases() {
-    print_info "Configurando alias de compatibilidad..."
-    
-    local aliases_created=0
-    local alias_map=(
-        "libcamera-still:rpicam-still"
-        "libcamera-vid:rpicam-vid"
-        "libcamera-hello:rpicam-hello"
-        "libcamera-jpeg:rpicam-jpeg"
-        "rpicam-still:libcamera-still"
-        "rpicam-vid:libcamera-vid"
-        "rpicam-hello:libcamera-hello"
-        "rpicam-jpeg:libcamera-jpeg"
-    )
-    
-    for mapping in "${alias_map[@]}"; do
-        local old_cmd="${mapping%%:*}"
-        local new_cmd="${mapping##*:}"
-        
-        # Verificar si el comando nuevo existe y el viejo no
-        if command -v "$new_cmd" &> /dev/null && ! command -v "$old_cmd" &> /dev/null; then
-            # Crear alias en /usr/local/bin
-            local alias_path="/usr/local/bin/$old_cmd"
-            local new_cmd_path=$(which "$new_cmd")
-            
-            if sudo ln -sf "$new_cmd_path" "$alias_path" 2>/dev/null; then
-                print_success "Alias creado: $old_cmd -> $new_cmd"
-                aliases_created=$((aliases_created + 1))
+                print_warning "rpicam-apps-core no disponible, intentando libcamera-apps..."
+                sudo apt install -y libcamera-apps || print_warning "Ni rpicam-apps-core ni libcamera-apps disponibles"
             fi
-        fi
-    done
-    
-    if [[ $aliases_created -gt 0 ]]; then
-        print_success "Se crearon $aliases_created alias de compatibilidad"
-    else
-        print_info "No se necesitaron alias de compatibilidad"
-    fi
+            ;;
+        "bullseye"|"buster"|"stretch")
+            print_info "Instalando libcamera-apps (Raspberry Pi OS anterior)..."
+            sudo apt install -y libcamera-apps || print_warning "libcamera-apps no disponible"
+            ;;
+        *)
+            print_warning "Versión de OS no reconocida, intentando instalar ambos..."
+            sudo apt install -y rpicam-apps-core || sudo apt install -y libcamera-apps || print_warning "Paquetes de cámara no disponibles"
+            ;;
+    esac
 }
 
 # Función para verificar instalación de cámara
@@ -152,12 +93,26 @@ verify_camera_installation() {
     for cmd in "${verification_commands[@]}"; do
         if command -v "$cmd" &> /dev/null; then
             print_info "Probando cámara con $cmd..."
-            if timeout 10s "$cmd" --timeout 100 --nopreview &>/dev/null; then
-                print_success "Cámara funciona correctamente con $cmd"
-                camera_working=true
-                break
+            
+            # Usar sintaxis correcta según el comando
+            if [[ "$cmd" == "rpicam-hello" ]]; then
+                # Sintaxis de rpicam-hello (Bookworm): -t en milisegundos
+                if timeout 10s "$cmd" -t 100 &>/dev/null; then
+                    print_success "Cámara funciona correctamente con $cmd"
+                    camera_working=true
+                    break
+                else
+                    print_warning "$cmd disponible pero cámara no responde"
+                fi
             else
-                print_warning "$cmd disponible pero cámara no responde"
+                # Sintaxis de libcamera-hello (anteriores): --timeout en milisegundos
+                if timeout 10s "$cmd" --timeout 100 &>/dev/null; then
+                    print_success "Cámara funciona correctamente con $cmd"
+                    camera_working=true
+                    break
+                else
+                    print_warning "$cmd disponible pero cámara no responde"
+                fi
             fi
         fi
     done
@@ -175,6 +130,7 @@ verify_camera_installation() {
             print_info "  • Cámara conectada correctamente"
             print_info "  • Cámara habilitada en raspi-config"
             print_info "  • Cable de cámara en buen estado"
+            print_info "  • Reiniciar el sistema después de habilitar cámara"
         fi
     fi
 }
@@ -183,13 +139,10 @@ verify_camera_installation() {
 main_installation() {
     print_info "Iniciando instalación..."
     
-    # 1. Detectar comandos existentes
-    local existing_commands=($(detect_camera_commands))
-    
-    # 2. Instalar paquetes necesarios
+    # 1. Instalar paquetes necesarios
     install_camera_packages
     
-    # 3. Instalar dependencias Python básicas
+    # 2. Instalar dependencias Python básicas
     print_info "Instalando dependencias básicas del sistema..."
     sudo apt install -y \
         python3-serial \
@@ -197,7 +150,7 @@ main_installation() {
         python3-pip \
         git
     
-    # 4. Configurar UART y cámara
+    # 3. Configurar UART y cámara
     print_info "Configurando UART y cámara..."
     if command -v raspi-config &> /dev/null; then
         sudo raspi-config nonint do_camera 0
@@ -227,29 +180,26 @@ main_installation() {
         print_success "Configuración manual completada"
     fi
     
-    # 5. Configurar permisos de usuario
+    # 4. Configurar permisos de usuario
     print_info "Configurando permisos de usuario..."
     sudo usermod -a -G dialout,video,gpio "$USER"
     print_success "Usuario agregado a grupos: dialout, video, gpio"
     
-    # 6. Crear entorno virtual si no existe
+    # 5. Crear entorno virtual si no existe
     if [[ ! -d "venv" ]]; then
         print_info "Creando entorno virtual Python..."
         python3 -m venv venv --system-site-packages
         print_success "Entorno virtual creado"
     fi
     
-    # 7. Instalar dependencias Python
+    # 6. Instalar dependencias Python
     print_info "Instalando dependencias Python..."
     source venv/bin/activate
     pip install --upgrade pip
     pip install pyserial psutil
     print_success "Dependencias Python instaladas"
     
-    # 8. Crear alias de compatibilidad
-    create_compatibility_aliases
-    
-    # 9. Crear archivos necesarios
+    # 7. Crear archivos necesarios
     print_info "Verificando estructura de archivos..."
     
     # Crear src/__init__.py si no existe
@@ -264,20 +214,20 @@ main_installation() {
         print_success "Configuración inicial creada"
     fi
     
-    # 10. Crear directorios necesarios
+    # 8. Crear directorios necesarios
     mkdir -p data/fotos data/temp logs
     print_success "Directorios de datos creados"
     
-    # 11. Establecer permisos de ejecución
+    # 9. Establecer permisos de ejecución
     chmod +x scripts/*.py 2>/dev/null || true
     chmod +x scripts/*.sh 2>/dev/null || true
     chmod +x *.sh 2>/dev/null || true
     print_success "Permisos de ejecución establecidos"
     
-    # 12. Verificar instalación de cámara
+    # 10. Verificar instalación de cámara
     verify_camera_installation
     
-    # 13. Test básico del sistema (opcional, no crítico)
+    # 11. Test básico del sistema (opcional, no crítico)
     print_info "Realizando test básico del sistema (opcional)..."
     
     if python3 -c "
