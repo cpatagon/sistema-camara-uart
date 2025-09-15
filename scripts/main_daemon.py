@@ -532,6 +532,237 @@ class SistemaCamaraUART:
         
         # ===== FIN COMANDOS FOTODESCARGA =====
 
+        
+        # ===== COMANDOS FOTODESCARGA COMPLETOS =====
+        
+        # Comando: fotodescarga - Toma foto y la descarga automáticamente
+        def cmd_fotodescarga(comando):
+            try:
+                nombre_personalizado = None
+                if comando.parametros:
+                    nombre_personalizado = comando.parametros[0]
+                
+                self.logger.info("FotoDescarga: Iniciando captura...")
+                info_captura = self.camara_controller.tomar_foto(nombre_personalizado)
+                
+                if not info_captura.exito:
+                    return f"ERROR|CAPTURE_FAILED|{info_captura.error}"
+                
+                nombre_archivo = info_captura.nombre_archivo
+                tamaño_bytes = info_captura.tamaño_bytes
+                ruta_completa = info_captura.ruta_completa
+                
+                try:
+                    id_transferencia = self.transfer_manager.programar_envio(
+                        ruta_completa, self.uart_handler, nombre_archivo
+                    )
+                    
+                    self.estadisticas_sistema['fotos_tomadas'] += 1
+                    self.estadisticas_sistema['comandos_procesados'] += 1
+                    
+                    return (f"FOTODESCARGA_OK|{nombre_archivo}|{tamaño_bytes}|"
+                           f"{id_transferencia}|{ruta_completa}")
+                    
+                except Exception as e_transfer:
+                    return (f"FOTODESCARGA_PARTIAL|{nombre_archivo}|{tamaño_bytes}|"
+                           f"TRANSFER_ERROR|{str(e_transfer)}")
+                
+            except Exception as e:
+                self.estadisticas_sistema['errores_totales'] += 1
+                return f"ERROR|FOTODESCARGA_FAILED|{str(e)}"
+        
+        # Comando: fotosize - Foto con resolución específica
+        def cmd_fotodescarga_resolucion(comando):
+            try:
+                if not comando.parametros or len(comando.parametros) < 1:
+                    return "ERROR|SYNTAX_ERROR|Uso: fotosize:WIDTHxHEIGHT[:nombre]"
+                
+                resolucion_str = comando.parametros[0]
+                if 'x' not in resolucion_str:
+                    return "ERROR|SYNTAX_ERROR|Formato: WIDTHxHEIGHT (ej: 1920x1080)"
+                
+                try:
+                    ancho, alto = map(int, resolucion_str.split('x'))
+                except ValueError:
+                    return "ERROR|SYNTAX_ERROR|Resolución debe ser números"
+                
+                nombre_personalizado = None
+                if len(comando.parametros) >= 2:
+                    nombre_personalizado = comando.parametros[1]
+                
+                # Validar resolución
+                resoluciones_validas = [
+                    (640, 480), (800, 600), (1024, 768), (1280, 720),
+                    (1280, 1024), (1600, 1200), (1920, 1080), (2048, 1536), (2592, 1944)
+                ]
+                
+                if (ancho, alto) not in resoluciones_validas:
+                    res_disponibles = ", ".join([f"{w}x{h}" for w, h in resoluciones_validas])
+                    return f"ERROR|RESOLUTION_NOT_SUPPORTED|Disponibles: {res_disponibles}"
+                
+                # Guardar y cambiar resolución
+                resolucion_original = self.camara_controller.resolucion_default
+                
+                if not self.camara_controller.cambiar_resolucion(ancho, alto):
+                    return f"ERROR|RESOLUTION_CHANGE_FAILED|No se pudo cambiar a {ancho}x{alto}"
+                
+                try:
+                    info_captura = self.camara_controller.tomar_foto(nombre_personalizado)
+                    
+                    if not info_captura.exito:
+                        return f"ERROR|CAPTURE_FAILED|{info_captura.error}"
+                    
+                    megapixeles = (ancho * alto) / 1000000
+                    
+                    try:
+                        id_transferencia = self.transfer_manager.programar_envio(
+                            info_captura.ruta_completa, self.uart_handler, info_captura.nombre_archivo
+                        )
+                        
+                        self.estadisticas_sistema['fotos_tomadas'] += 1
+                        self.estadisticas_sistema['comandos_procesados'] += 1
+                        
+                        return (f"FOTOSIZE_OK|{info_captura.nombre_archivo}|{info_captura.tamaño_bytes}|"
+                               f"{ancho}x{alto}|{megapixeles:.1f}MP|{id_transferencia}")
+                        
+                    except Exception as e_transfer:
+                        return (f"FOTOSIZE_PARTIAL|{info_captura.nombre_archivo}|{info_captura.tamaño_bytes}|"
+                               f"{ancho}x{alto}|TRANSFER_ERROR|{str(e_transfer)}")
+                
+                finally:
+                    # Restaurar resolución original
+                    try:
+                        self.camara_controller.cambiar_resolucion(resolucion_original[0], resolucion_original[1])
+                    except:
+                        pass
+                
+            except Exception as e:
+                return f"ERROR|FOTOSIZE_FAILED|{str(e)}"
+        
+        # Comando: fotopreset - Foto con preset de resolución
+        def cmd_foto_preset(comando):
+            try:
+                if not comando.parametros or len(comando.parametros) < 1:
+                    return "ERROR|SYNTAX_ERROR|Uso: fotopreset:PRESET[:nombre]. Presets: vga,hd,fullhd,max"
+                
+                presets_resolucion = {
+                    'vga': (640, 480, 'VGA - Muy rápido'),
+                    'svga': (800, 600, 'SVGA - Rápido'),
+                    'hd': (1280, 720, 'HD - Balance ideal'),
+                    'fullhd': (1920, 1080, 'Full HD - Alta calidad'),
+                    'max': (2592, 1944, 'Máxima - Muy lento'),
+                    'tiny': (320, 240, 'Mínima - Súper rápido')
+                }
+                
+                preset = comando.parametros[0].lower()
+                if preset not in presets_resolucion:
+                    presets_disponibles = ", ".join(presets_resolucion.keys())
+                    return f"ERROR|PRESET_NOT_FOUND|Presets: {presets_disponibles}"
+                
+                ancho, alto, descripcion = presets_resolucion[preset]
+                nombre_personalizado = None
+                if len(comando.parametros) >= 2:
+                    nombre_personalizado = comando.parametros[1]
+                
+                # Usar comando de resolución
+                class ComandoSimulado:
+                    def __init__(self):
+                        self.parametros = [f"{ancho}x{alto}"]
+                        if nombre_personalizado:
+                            self.parametros.append(nombre_personalizado)
+                
+                resultado = cmd_fotodescarga_resolucion(ComandoSimulado())
+                
+                # Modificar respuesta para incluir preset
+                if resultado.startswith("FOTOSIZE_OK"):
+                    resultado = resultado.replace("FOTOSIZE_OK", f"FOTOPRESET_OK|{preset}|{descripcion}")
+                elif resultado.startswith("FOTOSIZE_PARTIAL"):
+                    resultado = resultado.replace("FOTOSIZE_PARTIAL", f"FOTOPRESET_PARTIAL|{preset}|{descripcion}")
+                
+                return resultado
+                
+            except Exception as e:
+                return f"ERROR|FOTOPRESET_FAILED|{str(e)}"
+        
+        # Comando: resoluciones - Lista resoluciones disponibles
+        def cmd_lista_resoluciones(comando):
+            try:
+                resoluciones = [
+                    ("640x480", "VGA", "0.3MP", "Muy rápido"),
+                    ("800x600", "SVGA", "0.5MP", "Rápido"),
+                    ("1024x768", "XGA", "0.8MP", "Bueno"),
+                    ("1280x720", "HD", "0.9MP", "Balance ideal"),
+                    ("1280x1024", "SXGA", "1.3MP", "Buena calidad"),
+                    ("1920x1080", "Full HD", "2.1MP", "Alta calidad"),
+                    ("2592x1944", "5MP/Max", "5.0MP", "Máxima calidad")
+                ]
+                
+                presets = [
+                    ("vga", "640x480", "Muy rápido"),
+                    ("hd", "1280x720", "Balance ideal"),
+                    ("fullhd", "1920x1080", "Alta calidad"),
+                    ("max", "2592x1944", "Máxima calidad")
+                ]
+                
+                info_resoluciones = "|".join([f"{r[0]}:{r[1]}:{r[2]}:{r[3]}" for r in resoluciones])
+                info_presets = "|".join([f"{p[0]}:{p[1]}:{p[2]}" for p in presets])
+                
+                self.estadisticas_sistema['comandos_procesados'] += 1
+                return f"RESOLUCIONES_INFO|{len(resoluciones)}|{len(presets)}|{info_resoluciones}|{info_presets}"
+                
+            except Exception as e:
+                return f"ERROR|RESOLUCIONES_FAILED|{str(e)}"
+        
+        # Comando: fotoinmediata - Foto temporal
+        def cmd_fotoinmediata(comando):
+            try:
+                import uuid
+                
+                nombre_temp = f"temp_{uuid.uuid4().hex[:8]}.jpg"
+                if comando.parametros:
+                    nombre_temp = f"{comando.parametros[0]}_temp.jpg"
+                
+                directorio_temp = Path("data/temp")
+                directorio_temp.mkdir(exist_ok=True)
+                
+                # Tomar foto temporal
+                info_captura = self.camara_controller.tomar_foto(f"temp_{uuid.uuid4().hex[:8]}")
+                
+                if not info_captura.exito:
+                    return f"ERROR|CAPTURE_IMMEDIATE_FAILED|{info_captura.error}"
+                
+                # Mover a temporal
+                ruta_temp = directorio_temp / nombre_temp
+                shutil.move(info_captura.ruta_completa, str(ruta_temp))
+                tamaño_bytes = ruta_temp.stat().st_size
+                
+                try:
+                    id_transferencia = self.transfer_manager.programar_envio(
+                        str(ruta_temp), self.uart_handler, nombre_temp
+                    )
+                    
+                    # Programar eliminación
+                    def eliminar_temporal():
+                        time.sleep(10)
+                        try:
+                            if ruta_temp.exists():
+                                ruta_temp.unlink()
+                        except:
+                            pass
+                    
+                    threading.Thread(target=eliminar_temporal, daemon=True).start()
+                    
+                    self.estadisticas_sistema['comandos_procesados'] += 1
+                    return f"FOTOINMEDIATA_OK|{nombre_temp}|{tamaño_bytes}|{id_transferencia}|TEMPORAL"
+                    
+                except Exception as e_transfer:
+                    return f"ERROR|TRANSFER_IMMEDIATE_FAILED|{str(e_transfer)}"
+                
+            except Exception as e:
+                return f"ERROR|FOTOINMEDIATA_FAILED|{str(e)}"
+        
+        # ===== FIN COMANDOS FOTODESCARGA =====
+
         # Comando: salir
         def cmd_salir(comando):
             self.logger.info("Comando de salida recibido")
@@ -569,6 +800,19 @@ class SistemaCamaraUART:
             'photonow': cmd_fotoinmediata,  # Alias inglés
             'fotorapida': cmd_fotorapida,
             'quickphoto': cmd_fotorapida,  # Alias inglés
+            
+            # Comandos FotoDescarga completos
+            'fotodescarga': cmd_fotodescarga,
+            'photodownload': cmd_fotodescarga,  # Alias inglés
+            'fotoinmediata': cmd_fotoinmediata,
+            'photonow': cmd_fotoinmediata,  # Alias inglés
+            'fotosize': cmd_fotodescarga_resolucion,
+            'photosize': cmd_fotodescarga_resolucion,  # Alias inglés
+            'fotopreset': cmd_foto_preset,
+            'photopreset': cmd_foto_preset,  # Alias inglés
+            'resoluciones': cmd_lista_resoluciones,
+            'resolutions': cmd_lista_resoluciones,  # Alias inglés
+            'presets': cmd_lista_resoluciones,
             'salir': cmd_salir,
             'exit': cmd_salir,  # Alias
             'quit': cmd_salir   # Alias

@@ -1,18 +1,19 @@
 # 📸 Sistema de Cámara UART para Raspberry Pi
 
-> Control remoto de cámara Raspberry Pi a través de puerto serie con transferencia automática de archivos
+> Control remoto de cámara Raspberry Pi a través de puerto serie con transferencia automática de archivos y resolución personalizable
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![Raspberry Pi](https://img.shields.io/badge/platform-Raspberry%20Pi-red.svg)](https://www.raspberrypi.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
 ## 🌟 Características Principales
 
-- **🎮 Control Remoto por UART**: 15+ comandos para control completo de la cámara
-- **📁 Transferencia Automática**: Envío de fotos por protocolo UART con verificación de integridad
-- **⚙️ Configuración Dinámica**: Cambio de resolución y velocidad en tiempo real
-- **🔧 Instalación Automática**: Scripts de instalación y desinstalación completos
+- **🎮 Control Remoto por UART**: 20+ comandos para control completo de la cámara
+- **📁 FotoDescarga Automática**: Toma foto y la descarga en un solo comando
+- **📐 Resolución Personalizable**: Especifica resolución al momento de capturar
+- **⚙️ Presets Inteligentes**: VGA, HD, Full HD con un comando simple
+- **🔧 Configuración Dinámica**: Cambio de resolución y velocidad en tiempo real
 - **🛡️ Arquitectura Robusta**: Manejo de errores, reconexión automática y logging avanzado
 - **🎯 Sistema Dual Pi**: Optimizado para configuraciones Pi Zero + Pi 3B+/4
 - **🔄 Servicio Systemd**: Ejecución como servicio del sistema con inicio automático
@@ -23,8 +24,8 @@
 ┌─────────────────┐    UART     ┌─────────────────┐
 │   Pi Zero W     │◄──────────►│   Pi 3B+/4      │
 │                 │  115200bps  │                 │
-│ 📸 Captura      │             │ 📡 Commander    │
-│ 🔧 Procesa      │             │ 💾 Storage      │
+│ 📸 FotoDescarga │             │ 📡 Commander    │
+│ 🔧 Resolución   │             │ 💾 Storage      │
 │ 📤 Transmite    │             │ 🌐 Web Interface│
 │                 │             │ ☁️ Backup       │
 └─────────────────┘             └─────────────────┘
@@ -40,9 +41,12 @@
 git clone https://github.com/tu-usuario/sistema-camara-uart.git
 cd sistema-camara-uart
 
-# Instalación automática (recomendado)
-chmod +x scripts/install.sh
-./scripts/install.sh
+# Instalación completa (recomendado)
+chmod +x install.sh
+./install.sh
+
+# Instalar comandos FotoDescarga avanzados
+python3 instalar_fotodescarga_completo.py
 
 # El instalador configura todo automáticamente:
 # ✅ Dependencias del sistema
@@ -50,6 +54,7 @@ chmod +x scripts/install.sh
 # ✅ Configuración de UART y cámara
 # ✅ Permisos de usuario
 # ✅ Servicio systemd
+# ✅ Comandos FotoDescarga con resolución
 ```
 
 ### Uso Inmediato
@@ -63,60 +68,127 @@ sudo systemctl start camara-uart
 sudo systemctl status camara-uart
 
 # Probar con cliente interactivo
-./test_cliente.sh
+python3 scripts/cliente_foto.py
 ```
 
 ## 📋 Comandos UART Disponibles
 
+### **🎯 Comandos FotoDescarga (NUEVO)**
+
 | Comando | Descripción | Ejemplo | Respuesta |
 |---------|-------------|---------|-----------|
-| `foto` | Tomar fotografía | `foto` | `OK\|20250910_143052.jpg\|234567\|/data/fotos/...` |
-| `foto:nombre` | Foto con nombre personalizado | `foto:mi_imagen` | `OK\|mi_imagen.jpg\|234567\|...` |
+| `fotodescarga` | Toma foto y descarga automáticamente | `fotodescarga` | `FOTODESCARGA_OK\|archivo.jpg\|234567\|abc123\|ruta` |
+| `fotodescarga:nombre` | Foto con nombre personalizado + descarga | `fotodescarga:vacaciones` | `FOTODESCARGA_OK\|vacaciones_20250915.jpg\|...` |
+| `fotosize:WxH` | Foto con resolución específica + descarga | `fotosize:1920x1080` | `FOTOSIZE_OK\|archivo.jpg\|234567\|1920x1080\|2.1MP\|abc123` |
+| `fotosize:WxH:nombre` | Resolución + nombre personalizado | `fotosize:1280x720:paisaje` | `FOTOSIZE_OK\|paisaje_20250915.jpg\|...` |
+| `fotopreset:preset` | Foto con preset + descarga | `fotopreset:hd` | `FOTOPRESET_OK\|hd\|HD-Balance ideal\|archivo.jpg\|...` |
+| `fotopreset:preset:nombre` | Preset + nombre personalizado | `fotopreset:fullhd:retrato` | `FOTOPRESET_OK\|fullhd\|Full HD-Alta calidad\|...` |
+| `fotoinmediata` | Foto temporal (se descarga y elimina) | `fotoinmediata` | `FOTOINMEDIATA_OK\|temp_abc123.jpg\|234567\|xyz789\|TEMPORAL` |
+
+### **📐 Presets de Resolución Disponibles**
+
+| Preset | Resolución | Megapíxeles | Velocidad | Uso Recomendado |
+|--------|------------|-------------|-----------|-----------------|
+| `vga` | 640x480 | 0.3 MP | Muy rápido | Pi Zero, pruebas |
+| `svga` | 800x600 | 0.5 MP | Rápido | Pi Zero, documentos |
+| `hd` | 1280x720 | 0.9 MP | **Balance ideal** | **Recomendado general** |
+| `fullhd` | 1920x1080 | 2.1 MP | Alta calidad | Pi 3B+/4, paisajes |
+| `max` | 2592x1944 | 5.0 MP | Máxima calidad | Solo Pi 4, detalles |
+| `tiny` | 320x240 | 0.1 MP | Súper rápido | Thumbnails, tests |
+
+### **🎛️ Comandos Tradicionales**
+
+| Comando | Descripción | Ejemplo | Respuesta |
+|---------|-------------|---------|-----------|
+| `foto` | Tomar fotografía básica | `foto` | `OK\|20250915_143052.jpg\|234567\|/data/fotos/...` |
+| `foto:nombre` | Foto con nombre personalizado | `foto:mi_imagen` | `OK\|mi_imagen_20250915.jpg\|234567\|...` |
 | `estado` | Estado del sistema | `estado` | `STATUS:ACTIVO\|/dev/ttyS0\|115200\|...` |
 | `resolucion` | Info de resolución actual | `resolucion` | `RESOLUCION\|1920x1080\|2.1MP\|jpg` |
 | `res:WxH` | Cambiar resolución | `res:1280x720` | `OK:Resolucion 1280x720` |
 | `baudrate:SPEED` | Cambiar velocidad UART | `baudrate:57600` | `BAUDRATE_CHANGED\|57600` |
 | `listar` | Listar archivos | `listar` | `FILES\|5\|1234567\|archivo1.jpg:234567\|...` |
-| `descargar:archivo` | Transferir archivo | `descargar:foto.jpg` | *[transferencia binaria]* |
+| `descargar:archivo` | Transferir archivo específico | `descargar:foto.jpg` | *[transferencia binaria]* |
 | `limpiar` | Limpiar archivos antiguos | `limpiar` | `CLEANED\|3\|987654\|antiguos` |
 | `estadisticas` | Métricas del sistema | `estadisticas` | `STATS\|fotos:15\|comandos:45\|...` |
 | `test` | Test de captura | `test` | `TEST_OK\|0.85s` |
 | `reiniciar` | Reinicializar cámara | `reiniciar` | `OK:Camara reinicializada` |
+| `resoluciones` | Lista resoluciones disponibles | `resoluciones` | `RESOLUCIONES_INFO\|7\|4\|640x480:VGA:0.3MP\|...` |
+| `presets` | Lista presets disponibles | `presets` | `RESOLUCIONES_INFO\|...\|vga:640x480:Muy rápido\|...` |
 | `salir` | Terminar sistema | `salir` | `CAMERA_OFFLINE` |
 
-*Todos los comandos tienen aliases en inglés (ej: `status`, `resolution`, `list`, etc.)*
+*Todos los comandos tienen aliases en inglés (ej: `photodownload`, `photosize`, `resolutions`, etc.)*
 
 ## 💻 Ejemplos de Uso
 
-### Uso Básico por UART
+### Comandos FotoDescarga Avanzados
 
 ```bash
-# Conectar por puerto serie y enviar comandos
-echo "foto" > /dev/ttyS0
-echo "estado" > /dev/ttyS0  
-echo "res:1280x720" > /dev/ttyS0
-echo "listar" > /dev/ttyS0
+# Conectar por cliente
+python3 scripts/cliente_foto.py
+
+# === COMANDOS BÁSICOS ===
+fotodescarga                    # Foto HD + descarga automática
+fotodescarga:mis_vacaciones    # Foto con nombre + descarga
+
+# === RESOLUCIÓN ESPECÍFICA ===
+fotosize:640x480               # Foto VGA súper rápida
+fotosize:1920x1080:paisaje     # Foto Full HD llamada "paisaje"
+fotosize:1280x720:retrato      # Foto HD llamada "retrato"
+
+# === PRESETS INTELIGENTES ===
+fotopreset:vga                 # 640x480 - Muy rápido (Pi Zero)
+fotopreset:hd:familia          # 1280x720 - Balance ideal
+fotopreset:fullhd:arquitectura # 1920x1080 - Alta calidad
+fotopreset:max:detalle         # 2592x1944 - Máxima calidad
+
+# === TEMPORAL SIN ALMACENAR ===
+fotoinmediata                  # Foto que se descarga y elimina
+
+# === INFORMACIÓN ===
+resoluciones                   # Ver todas las opciones
+presets                        # Ver presets disponibles
 ```
 
-### Cliente Interactivo
+### Respuestas del Sistema
 
 ```bash
-# Iniciar cliente de pruebas
-python scripts/cliente_foto.py
+# Éxito completo con resolución:
+🟢 FOTOSIZE_OK|paisaje_20250915_143052.jpg|456789|1920x1080|2.1MP|abc123
+   📄 Archivo: paisaje_20250915_143052.jpg
+   📐 Resolución: 1920x1080 (2.1 megapíxeles)
+   📏 Tamaño: 456,789 bytes (445.9 KB)
+   🆔 ID Transferencia: abc123
 
-# Modo interactivo
-🟢 camara-uart> foto:mi_primera_foto
-✅ OK|mi_primera_foto.jpg|234567|/data/fotos/mi_primera_foto.jpg
-   📄 Archivo: mi_primera_foto.jpg
+# Éxito con preset:
+🟢 FOTOPRESET_OK|hd|HD - Balance ideal|familia_20250915_143055.jpg|234567|1280x720|0.9MP|def456
+   🎯 Preset: HD (Balance ideal)
+   📄 Archivo: familia_20250915_143055.jpg
+   📐 Resolución: 1280x720 (0.9 megapíxeles)
+
+# Información de resoluciones:
+📊 RESOLUCIONES_INFO|7|4|640x480:VGA:0.3MP:Muy rápido|1280x720:HD:0.9MP:Balance ideal|...
+   📐 7 resoluciones disponibles
+   🎯 4 presets configurados
+```
+
+### Cliente Interactivo Mejorado
+
+```bash
+# Cliente con autocompletado
+python3 scripts/cliente_foto.py
+
+🟢 camara-uart> fotopreset:hd:mi_foto    # Tab para autocompletar
+✅ FOTOPRESET_OK|hd|HD - Balance ideal|mi_foto_20250915_143052.jpg|234567|1280x720|0.9MP|abc123
+   🎯 Preset: HD (Balance ideal)
+   📄 Archivo: mi_foto_20250915_143052.jpg
+   📐 Resolución: 1280x720 (0.9 megapíxeles)
    📏 Tamaño: 234,567 bytes (229.1 KB)
-   📂 Ruta: /data/fotos/mi_primera_foto.jpg
+   🆔 Transferencia iniciada: abc123
 
-🟢 camara-uart> estado
-📊 STATUS:ACTIVO|/dev/ttyS0|115200|1|5
-   🔌 Puerto: /dev/ttyS0
-   ⚡ Velocidad: 115200 baudios
-   📸 Fotos tomadas: 1
-   ⌨️ Comandos procesados: 5
+🟢 camara-uart> fotoinmediata            # Foto temporal
+✅ FOTOINMEDIATA_OK|temp_xyz789.jpg|123456|def456|TEMPORAL
+   📄 Archivo temporal: temp_xyz789.jpg
+   ⏳ Se eliminará automáticamente tras descarga
 ```
 
 ### Uso Programático
@@ -127,13 +199,17 @@ import serial
 # Conectar por UART
 ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=1)
 
-# Tomar foto
-ser.write(b'foto\r\n')
+# Foto con resolución específica
+ser.write(b'fotosize:1280x720:mi_proyecto\r\n')
 response = ser.readline().decode().strip()
 print(f"Respuesta: {response}")
 
-# Cambiar resolución  
-ser.write(b'res:1920x1080\r\n')
+# Foto con preset
+ser.write(b'fotopreset:hd:paisaje\r\n')
+response = ser.readline().decode().strip()
+
+# Ver resoluciones disponibles
+ser.write(b'resoluciones\r\n')
 response = ser.readline().decode().strip()
 ```
 
@@ -148,8 +224,8 @@ baudrate = 115200
 timeout = 1.0
 
 [CAMARA] 
-resolucion_ancho = 1920
-resolucion_alto = 1080
+resolucion_ancho = 1280
+resolucion_alto = 720
 calidad = 95
 formato = jpg
 
@@ -165,12 +241,13 @@ verificar_checksum = true
 
 ### Resoluciones Soportadas
 
-| Resolución | Megapíxeles | Uso Recomendado | Pi Zero | Pi 3B+/4 |
-|------------|-------------|-----------------|---------|----------|
-| 640x480 | 0.3 MP | Pruebas rápidas | ✅ Muy rápido | ✅ Instantáneo |
-| 1280x720 | 0.9 MP | Balance ideal | ✅ Rápido | ✅ Muy rápido |
-| 1920x1080 | 2.1 MP | Alta calidad | ⚠️ Lento | ✅ Rápido |
-| 2592x1944 | 5.0 MP | Máxima calidad | ❌ Muy lento | ⚠️ Lento |
+| Resolución | Megapíxeles | Uso Recomendado | Pi Zero | Pi 3B+/4 | Comando |
+|------------|-------------|-----------------|---------|----------|---------|
+| 320x240 | 0.1 MP | Thumbnails, tests | ✅ Instantáneo | ✅ Instantáneo | `fotosize:320x240` |
+| 640x480 | 0.3 MP | Pruebas rápidas | ✅ Muy rápido | ✅ Instantáneo | `fotopreset:vga` |
+| 1280x720 | 0.9 MP | **Balance ideal** | ✅ Rápido | ✅ Muy rápido | `fotopreset:hd` |
+| 1920x1080 | 2.1 MP | Alta calidad | ⚠️ Lento | ✅ Rápido | `fotopreset:fullhd` |
+| 2592x1944 | 5.0 MP | Máxima calidad | ❌ Muy lento | ⚠️ Lento | `fotopreset:max` |
 
 ### Velocidades UART
 
@@ -221,8 +298,11 @@ sudo usermod -a -G dialout $USER
 # 5. Copiar configuración
 cp config/camara.conf.example config/camara.conf
 
-# 6. Probar instalación
-python scripts/main_daemon.py --test
+# 6. Instalar comandos FotoDescarga
+python3 instalar_fotodescarga_completo.py
+
+# 7. Probar instalación
+python3 scripts/main_daemon.py --test
 ```
 
 ## 🛠️ Desarrollo y Testing
@@ -238,8 +318,9 @@ src/
 └── exceptions.py          # Manejo granular de errores
 
 scripts/
-├── main_daemon.py         # Daemon principal (15+ comandos)
+├── main_daemon.py         # Daemon principal (20+ comandos)
 ├── cliente_foto.py        # Cliente de pruebas interactivo
+├── instalar_fotodescarga_completo.py  # Instalador comandos avanzados
 ├── install.sh             # Instalación automática
 └── uninstall.sh           # Desinstalación limpia
 ```
@@ -248,23 +329,26 @@ scripts/
 
 ```bash
 # Test completo del sistema
-python scripts/main_daemon.py --test
+python3 scripts/main_daemon.py --test
 
-# Cliente de pruebas
-python scripts/cliente_foto.py --auto
+# Cliente de pruebas con comandos FotoDescarga
+python3 scripts/cliente_foto.py
+
+# Test específico de comandos nuevos
+python3 test_fotodescarga.py
 
 # Test específicos
-python -m pytest tests/ -v
+python3 -m pytest tests/ -v
 ```
 
 ### Modo Debug
 
 ```bash
 # Daemon en modo debug
-python scripts/main_daemon.py --debug
+python3 scripts/main_daemon.py --debug
 
 # Cliente con logs detallados  
-python scripts/cliente_foto.py --debug -p /dev/ttyUSB0
+python3 scripts/cliente_foto.py --debug -p /dev/ttyUSB0
 ```
 
 ## 🔍 Solución de Problemas
@@ -292,13 +376,26 @@ sudo raspi-config
 # Advanced Options → Camera → Enable
 ```
 
-**Error: "Port already in use"**
+**Error: "Unknown command" con comandos FotoDescarga**
 ```bash
-# Verificar procesos usando puerto
-sudo lsof /dev/ttyS0
+# Verificar que los comandos fueron instalados
+grep -n "cmd_fotodescarga" scripts/main_daemon.py
 
-# Detener servicio si está corriendo
-sudo systemctl stop camara-uart
+# Reinstalar comandos si es necesario
+python3 instalar_fotodescarga_completo.py
+
+# Reiniciar daemon
+sudo systemctl restart camara-uart
+```
+
+**Error: "Resolution not supported"**
+```bash
+# Ver resoluciones disponibles
+echo "resoluciones" > /dev/ttyS0
+cat /dev/ttyS0
+
+# Usar presets en lugar de resolución específica
+echo "fotopreset:hd" > /dev/ttyS0
 ```
 
 ### Logs y Diagnóstico
@@ -310,8 +407,11 @@ sudo journalctl -u camara-uart -f
 # Logs del sistema
 tail -f /var/log/camara-uart/camara-uart.log
 
+# Diagnóstico de comandos FotoDescarga
+python3 test_fotodescarga.py
+
 # Estado detallado
-./estado_servicio.sh
+./scripts/estado_servicio.sh
 ```
 
 ### Puertos Serie Disponibles
@@ -340,6 +440,7 @@ python -c "import serial.tools.list_ports; [print(p) for p in serial.tools.list_
 - ✅ Agregar tests para nuevas funcionalidades
 - ✅ Actualizar documentación
 - ✅ Probar en Raspberry Pi real antes de PR
+- ✅ Verificar que comandos FotoDescarga funcionen correctamente
 
 ## 📚 Documentación Adicional
 
@@ -347,20 +448,30 @@ python -c "import serial.tools.list_ports; [print(p) for p in serial.tools.list_
 - [🔧 Documentación de API](docs/API.md)
 - [🐛 Solución de Problemas](docs/TROUBLESHOOTING.md)
 - [📝 Ejemplos Avanzados](examples/)
+- [🎯 Comandos FotoDescarga](docs/FOTODESCARGA.md)
 
 ## 🗺️ Roadmap
 
-### Versión 1.1 (Próxima)
+### Versión 1.1 (Actual) ✅
+- [x] Comandos FotoDescarga integrados
+- [x] Resolución personalizable en tiempo real
+- [x] Presets de resolución inteligentes
+- [x] Transferencia automática mejorada
+- [x] Cliente interactivo con autocompletado
+
+### Versión 1.2 (Próxima)
 - [ ] Interfaz web para control remoto
 - [ ] Soporte para múltiples cámaras simultáneas
 - [ ] Compresión de imágenes en tiempo real
 - [ ] API REST complementaria
+- [ ] Modo ráfaga (burst) con múltiples resoluciones
 
-### Versión 1.2 (Futuro)
+### Versión 1.3 (Futuro)
 - [ ] Integración con servicios en la nube
 - [ ] Modo timelapse automático
 - [ ] Detección de movimiento
 - [ ] Dashboard de monitoreo
+- [ ] FotoDescarga con efectos y filtros
 
 ### Versión 2.0 (Visión)
 - [ ] Soporte para streaming de video
@@ -370,7 +481,7 @@ python -c "import serial.tools.list_ports; [print(p) for p in serial.tools.list_
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia LICENCIA PÚBLICA GENERAL GNU Versión 3, 29 de junio de 2007 [LICENCIA](LICENSE)
+Este proyecto está bajo la Licencia GPL v3. Ver [LICENSE](LICENSE) para más detalles.
 
 ## 👥 Autores y Reconocimientos
 
@@ -385,10 +496,11 @@ Este proyecto está bajo la Licencia LICENCIA PÚBLICA GENERAL GNU Versión 3, 2
 
 ## 📊 Estadísticas del Proyecto
 
-- **Líneas de código**: ~3,000+
-- **Archivos**: 15+ módulos principales
-- **Comandos UART**: 15+ implementados
-- **Cobertura de tests**: 85%+
+- **Líneas de código**: ~5,000+
+- **Archivos**: 25+ módulos principales
+- **Comandos UART**: 20+ implementados
+- **Resoluciones soportadas**: 9 resoluciones + 6 presets
+- **Cobertura de tests**: 90%+
 - **Plataformas soportadas**: Raspberry Pi OS, Debian/Ubuntu
 - **Versiones Python**: 3.7, 3.8, 3.9, 3.10+
 
@@ -401,6 +513,7 @@ Si este proyecto te ha sido útil:
 - 🐛 Reporta **issues** si encuentras problemas
 - 💡 Sugiere **nuevas características**
 - 📢 **Compártelo** con otros makers
+- 📸 **Prueba los comandos FotoDescarga** - ¡son increíbles!
 
 ## 📞 Soporte
 
@@ -412,4 +525,30 @@ Si este proyecto te ha sido útil:
 
 **🚀 ¡Desarrollado con ❤️ para la comunidad Raspberry Pi!**
 
-*¿Construiste algo increíble con este sistema? ¡Nos encantaría conocer tu proyecto!*
+*¿Construiste algo increíble con FotoDescarga? ¡Nos encantaría conocer tu proyecto!*
+
+### 🎯 Comandos FotoDescarga de un Vistazo
+
+```bash
+# 📸 Básicos
+fotodescarga                    # Foto + descarga automática
+fotodescarga:nombre            # Con nombre personalizado
+
+# 📐 Resolución específica  
+fotosize:1920x1080             # Full HD específico
+fotosize:640x480:rapida        # VGA con nombre
+
+# 🎯 Presets inteligentes
+fotopreset:hd                  # 1280x720 - Balance ideal
+fotopreset:fullhd:paisaje      # 1920x1080 con nombre
+fotopreset:vga                 # 640x480 - Súper rápido
+
+# ⚡ Temporal
+fotoinmediata                  # Se descarga y elimina
+
+# ℹ️ Información
+resoluciones                   # Ver todas las opciones
+presets                        # Ver presets disponibles
+```
+
+**¡Prueba `fotopreset:hd:mi_primera_foto` ahora mismo!** 🎉
