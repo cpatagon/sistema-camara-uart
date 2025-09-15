@@ -1,11 +1,24 @@
 # cliente_transfer.py
 import serial
 
-def recibir_archivo(puerto="/dev/ttyUSB0", baudrate=115200):
+def recibir_archivo(puerto="/dev/ttyS0", baudrate=115200):
     ser = serial.Serial(puerto, baudrate, timeout=2)
 
-    # Esperar header
-    header = ser.readline().decode().strip()
+    # Enviar comando al servidor para iniciar transferencia
+    ser.write(b"fotodescarga\n")
+
+    # Esperar header válido con '|'
+    header = ""
+    while True:
+        line = ser.readline().decode().strip()
+        if not line:
+            continue  # ignorar líneas vacías
+        if "|" in line:
+            header = line
+            break
+        else:
+            print(f"Línea inesperada: {line}")  # debug
+
     print(f"Header recibido: {header}")
     timestamp, size = header.split("|")
     size = int(size)
