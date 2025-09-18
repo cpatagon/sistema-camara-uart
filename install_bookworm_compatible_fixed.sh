@@ -80,6 +80,18 @@ class ConfigManager:
             if 'UART' in parser:
                 self.config.puerto = parser['UART'].get('puerto', self.config.puerto)
                 self.config.baudrate = int(parser['UART'].get('baudrate', self.config.baudrate))
+    
+    @property
+    def puerto(self):
+        return self.config.puerto
+    
+    @property  
+    def baudrate(self):
+        return self.config.baudrate
+    
+    @property
+    def directorio_fotos(self):
+        return self.config.directorio_fotos
 EOF
 
     # Cámara controller inteligente
